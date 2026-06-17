@@ -5,7 +5,7 @@ import {
   RSocketClient,
   util,
   type AnyClient,
-} from "./lib/socketClients";
+} from "./lib/clients";
 import type {
   Collection,
   HeaderRow,

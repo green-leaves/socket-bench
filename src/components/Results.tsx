@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 import type { AppState } from "../App";
 import type { FilterDir, Message, Subscription } from "../types";
 import { dirMeta, fmtTime, MONO, pill, seg } from "../styles";
-import { util } from "../lib/socketClients";
+import { util } from "../lib/clients";
 import { JsonView, PlainView } from "./JsonView";
 
 interface Props {
