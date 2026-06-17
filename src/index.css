@@ -1,0 +1,98 @@
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: #0a0c10;
+}
+#root {
+  height: 100%;
+}
+::selection {
+  background: rgba(45, 212, 167, 0.25);
+}
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #222b38;
+  border-radius: 6px;
+  border: 2px solid #0a0c10;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #33404f;
+}
+input::placeholder,
+textarea::placeholder {
+  color: #4a525f;
+}
+@keyframes sb-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+@keyframes sb-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* hover/focus interactions ported from the prototype's style-hover / style-focus */
+.sb-hover-border:hover {
+  border-color: var(--accent, #2dd4a7) !important;
+  color: var(--accent, #2dd4a7) !important;
+}
+.sb-input:focus {
+  border-color: var(--accent, #2dd4a7) !important;
+}
+.sb-brighten:hover {
+  filter: brightness(1.08);
+}
+.sb-row:hover {
+  background: #11161e;
+  border-color: #1e2632 !important;
+}
+.sb-del:hover {
+  color: #ff7b72 !important;
+  background: rgba(255, 123, 114, 0.1);
+}
+.sb-danger:hover {
+  color: #ff7b72 !important;
+  border-color: rgba(255, 123, 114, 0.3) !important;
+}
+.sb-soft-btn:hover {
+  background: #1c2330;
+  border-color: #3a4555;
+}
+.sb-soft-btn2:hover {
+  background: #1c2330;
+}
+.sb-add:hover {
+  color: var(--accent, #2dd4a7);
+}
+.sb-divider:hover {
+  background: #11161e;
+}
+.sb-sample:hover {
+  border-color: var(--accent, #2dd4a7) !important;
+  color: var(--accent, #2dd4a7) !important;
+}
+.sb-cancel:hover {
+  color: #ff7b72 !important;
+}

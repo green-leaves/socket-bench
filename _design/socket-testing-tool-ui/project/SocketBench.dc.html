@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<template id="__bundler_thumbnail" data-bg-color="#0a0c10">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#0a0c10"/>
+    <rect x="470" y="300" width="260" height="260" rx="58" fill="#11161e" stroke="#1c232f" stroke-width="6"/>
+    <circle cx="600" cy="430" r="78" fill="none" stroke="#2dd4a7" stroke-width="20"/>
+    <circle cx="600" cy="430" r="20" fill="#2dd4a7"/>
+    <path d="M600 352 v-44 M600 552 v44 M522 430 h-44 M722 430 h44" stroke="#2dd4a7" stroke-width="16" stroke-linecap="round"/>
+  </svg>
+</template>
+<helmet>
+<meta name="darkreader-lock">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;height:100%;background:#0a0c10}
+  ::selection{background:rgba(45,212,167,.25)}
+  ::-webkit-scrollbar{width:9px;height:9px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:#222b38;border-radius:6px;border:2px solid #0a0c10}
+  ::-webkit-scrollbar-thumb:hover{background:#33404f}
+  input::placeholder,textarea::placeholder{color:#4a525f}
+  @keyframes sb-pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  @keyframes sb-in{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+</style>
+<script src="socket-clients.js"></script>
+</helmet>
+
+<div ref="{{ rootRef }}" style="height:100vh;width:100%;display:grid;grid-template-columns:266px 1fr;background:#0a0c10;color:#dce1ea;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:var(--fs,12.5px);overflow:hidden;--accent:#2dd4a7;--pad-y:9px;--gap:12px">
+
+  <!-- ===================== SIDEBAR ===================== -->
+  <aside style="display:flex;flex-direction:column;background:#0b0e13;border-right:1px solid #1c232f;min-height:0">
+    <div style="padding:15px 16px 13px;border-bottom:1px solid #1c232f">
+      <div style="display:flex;align-items:center;gap:9px">
+        <div style="width:11px;height:11px;border-radius:3px;background:var(--accent,#2dd4a7);box-shadow:0 0 12px var(--accent,#2dd4a7)"></div>
+        <div style="font:700 15px 'IBM Plex Mono',monospace;letter-spacing:.02em;color:#eef2f7">socketbench</div>
+      </div>
+      <div style="margin-top:5px;font:500 10.5px 'IBM Plex Sans';color:#59616f;letter-spacing:.04em">WS · STOMP · RSocket client</div>
+    </div>
+
+    <div style="display:flex;gap:4px;padding:10px 12px 4px">
+      <button onClick="{{ onCollTab }}" style="{{ collTabStyle }}">Collections</button>
+      <button onClick="{{ onHistTab }}" style="{{ histTabStyle }}">History</button>
+    </div>
+
+    <div style="flex:1;overflow-y:auto;padding:8px 10px;min-height:0">
+      <sc-if value="{{ sidebarCollections }}" hint-placeholder-val="{{ true }}">
+        <button onClick="{{ saveCollection }}" style="width:100%;margin-bottom:9px;background:transparent;border:1px dashed #2a3340;border-radius:8px;padding:9px;color:#8a93a4;font:600 11.5px 'IBM Plex Sans';cursor:pointer" style-hover="border-color:var(--accent,#2dd4a7);color:var(--accent,#2dd4a7)">+ Save current endpoint</button>
+        <sc-if value="{{ noCollections }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:18px 10px;text-align:center;color:#4a525f;font-size:11.5px;line-height:1.6">No saved connections yet.<br>Connect, then save.</div>
+        </sc-if>
+        <sc-for list="{{ collRows }}" as="c" hint-placeholder-count="2">
+          <div style="display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:8px;margin-bottom:4px;cursor:pointer;border:1px solid transparent" style-hover="background:#11161e;border-color:#1e2632" onClick="{{ c.onLoad }}">
+            <span style="{{ c.protoBadgeStyle }}">{{ c.proto }}</span>
+            <div style="flex:1;min-width:0">
+              <div style="font:600 13px 'IBM Plex Mono',monospace;color:#dce1ea;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.name }}</div>
+              <div style="font-size:10px;color:#59616f;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.url }}</div>
+            </div>
+            <span onClick="{{ c.onDelete }}" style="flex:none;color:#4a525f;font-size:15px;line-height:1;padding:2px 4px;border-radius:4px" style-hover="color:#ff7b72;background:rgba(255,123,114,.1)">×</span>
+          </div>
+        </sc-for>
+      </sc-if>
+
+      <sc-if value="{{ sidebarHistory }}" hint-placeholder-val="{{ false }}">
+        <sc-if value="{{ hasHistory }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ clearHistory }}" style="width:100%;margin-bottom:9px;background:transparent;border:1px solid #1e2632;border-radius:8px;padding:7px;color:#8a93a4;font:600 11px 'IBM Plex Sans';cursor:pointer" style-hover="color:#ff7b72;border-color:rgba(255,123,114,.3)">Clear history</button>
+        </sc-if>
+        <sc-if value="{{ noHistory }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:18px 10px;text-align:center;color:#4a525f;font-size:11.5px;line-height:1.6">Connections &amp; sends<br>show up here.</div>
+        </sc-if>
+        <sc-for list="{{ histRows }}" as="h" hint-placeholder-count="3">
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;margin-bottom:3px;cursor:pointer;border:1px solid transparent" style-hover="background:#11161e;border-color:#1e2632" onClick="{{ h.onLoad }}">
+            <span style="{{ h.protoBadgeStyle }}">{{ h.proto }}</span>
+            <div style="flex:1;min-width:0">
+              <div style="font:12px 'IBM Plex Mono',monospace;color:#c4ccd8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ h.url }}</div>
+              <div style="font-size:10px;color:#59616f;margin-top:2px">{{ h.action }} · {{ h.tsStr }}</div>
+            </div>
+          </div>
+        </sc-for>
+      </sc-if>
+    </div>
+  </aside>
+
+  <!-- ===================== MAIN ===================== -->
+  <main style="display:flex;flex-direction:column;min-width:0;min-height:0">
+
+    <!-- connection bar -->
+    <div style="flex:none;display:flex;align-items:center;gap:11px;padding:11px 16px;border-bottom:1px solid #1c232f;background:#0b0e13">
+      <div style="display:flex;gap:3px;background:#0c0f15;border:1px solid #1c232f;border-radius:9px;padding:3px">
+        <sc-for list="{{ protoBtns }}" as="p" hint-placeholder-count="3">
+          <button onClick="{{ p.onClick }}" style="{{ p.style }}">{{ p.label }}</button>
+        </sc-for>
+      </div>
+      <input value="{{ url }}" onChange="{{ onUrl }}" placeholder="wss://example.com/ws" spellcheck="false" style="flex:1;min-width:120px;background:#0c0f15;border:1px solid #1c232f;border-radius:8px;padding:9px 12px;color:#dce1ea;font:13px 'IBM Plex Mono',monospace;outline:none" style-focus="border-color:var(--accent,#2dd4a7)" />
+      <button onClick="{{ connectBtnClick }}" style="{{ connectBtnStyle }}" style-hover="filter:brightness(1.08)">{{ connectBtnLabel }}</button>
+      <div style="display:flex;align-items:center;gap:8px;padding-left:4px;min-width:128px">
+        <span style="{{ statusDotStyle }}"></span>
+        <div style="line-height:1.2">
+          <div style="font:600 11.5px 'IBM Plex Sans';color:#c4ccd8">{{ statusText }}</div>
+          <sc-if value="{{ hasLatency }}" hint-placeholder-val="{{ false }}">
+            <div style="font:11px 'IBM Plex Mono',monospace;color:var(--accent,#2dd4a7)">{{ latencyStr }}</div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+
+    <!-- split area -->
+    <div ref="{{ splitRef }}" style="flex:1;display:flex;flex-direction:row;min-height:0;min-width:0">
+
+      <!-- ============ COMPOSER ============ -->
+      <div data-screen-label="Composer" style="{{ composerStyle }}">
+        <div style="padding:16px 18px;display:flex;flex-direction:column;gap:15px">
+
+          <!-- WS -->
+          <sc-if value="{{ isWs }}" hint-placeholder-val="{{ true }}">
+            <div>
+              <label style="display:block;font:600 10px 'IBM Plex Sans';letter-spacing:.1em;text-transform:uppercase;color:#59616f;margin-bottom:6px">Sub-protocols <span style="text-transform:none;letter-spacing:0;color:#3f4754;font-weight:400">(optional, comma separated)</span></label>
+              <input value="{{ wsProtocols }}" onChange="{{ onWsProtocols }}" placeholder="e.g. graphql-ws" spellcheck="false" style="width:100%;max-width:360px;background:#0c0f15;border:1px solid #1c232f;border-radius:7px;padding:8px 11px;color:#dce1ea;font:13px 'IBM Plex Mono',monospace;outline:none" style-focus="border-color:var(--accent,#2dd4a7)" />
+            </div>
+            <div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                <label style="font:600 10px 'IBM Plex Sans';letter-spacing:.1em;text-transform:uppercase;color:#59616f">Message payload</label>
+                <button onClick="{{ wsSend }}" style="background:var(--accent,#2dd4a7);border:none;border-radius:7px;padding:8px 18px;color:#06120d;font:600 12.5px 'IBM Plex Sans';cursor:pointer" style-hover="filter:brightness(1.08)">Send ↵</button>
+              </div>
+              <textarea value="{{ wsPayload }}" onChange="{{ onWsPayload }}" spellcheck="false" style="width:100%;min-height:150px;resize:vertical;background:#0c0f15;border:1px solid #1c232f;border-radius:8px;padding:12px 13px;color:#cdd6e0;font:12.5px/1.5 'IBM Plex Mono',monospace;outline:none" style-focus="border-color:var(--accent,#2dd4a7)"></textarea>
+            </div>
+          </sc-if>
+
+          <!-- STOMP -->
+          <sc-if value="{{ isStomp }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+              <div style="background:#0b0e13;border:1px solid #1c232f;border-radius:10px;padding:13px 14px">
+                <div style="font:700 11px 'IBM Plex Sans';color:#8a93a4;letter-spacing:.06em;margin-bottom:10px">SUBSCRIBE</div>
+                <label style="display:block;font:600 10px 'IBM Plex Sans';letter-spacing:.1em;text-transform:uppercase;color:#59616f;margin-bottom:6px">Destination</label>
+                <div style="display:flex;gap:8px">
+                  <input value="{{ stompSubDest }}" onChange="{{ onStompSubDest }}" placeholder="/topic/messages" spellcheck="false" style="flex:1;min-width:0;background:#0c0f15;border:1px solid #1c232f;border-radius:7px;padding:8px 11px;color:#dce1ea;font:13px 'IBM Plex Mono',monospace;outline:none" style-focus="border-color:var(--accent,#2dd4a7)" />
+                  <button onClick="{{ stompSubscribe }}" style="flex:none;background:#151a22;border:1px solid #2a3340;border-radius:7px;padding:8px 14px;color:#dce1ea;font:600 12px 'IBM Plex Sans';cursor:pointer" style-hover="background:#1c2330;border-color:#3a4555">Subscribe</button>
+                </div>
+                <div style="margin-top:13px">
+                  <label style="display:block;font:600 10px 'IBM Plex Sans';letter-spacing:.1em;text-transform:uppercase;color:#59616f;margin-bottom:6px">Connect headers <span style="text-transform:none;letter-spacing:0;color:#3f4754;font-weight:400">(applied on Connect)</span></label>
+                  <sc-for list="{{ connHeaderRows }}" as="r" hint-placeholder-count="1">
+                    <div style="display:flex;gap:6px;margin-bottom:5px">
+                      <input value="{{ r.k }}" onChange="{{ r.onK }}" placeholder="login" spellcheck="false" style="flex:1;min-width:0;background:#0c0f15;border:1px solid #1c232f;border-radius:6px;padding:6px 9px;color:#c4ccd8;font:12px 'IBM Plex Mono',monospace;outline:none" />
+                      <input value="{{ r.v }}" onChange="{{ r.onV }}" placeholder="value" spellcheck="false" style="flex:1;min-width:0;background:#0c0f15;border:1px solid #1c232f;border-radius:6px;padding:6px 9px;color:#c4ccd8;font:12px 'IBM Plex Mono',monospace;outline:none" />
+                      <button onClick="{{ r.onRemove }}" style="flex:none;width:28px;background:transparent;border:1px solid #1e2632;border-radius:6px;color:#59616f;cursor:pointer;font-size:14px" style-hover="color:#ff7b72;border-color:rgba(255,123,114,.3)">×</button>
+                    </div>
+                  </sc-for>
+                  <button onClick="{{ addConnHeader }}" style="background:transparent;border:none;color:#59616f;font:600 11px 'IBM Plex Sans';cursor:pointer;padding:2px 0" style-hover="color:var(--accent,#2dd4a7)">+ Add header</button>
+                </div>
+              </div>
+
+              <div style="background:#0b0e13;border:1px solid #1c232f;border-radius:10px;padding:13px 14px;display:flex;flex-direction:column">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                  <div style="font:700 11px 'IBM Plex Sans';color:#8a93a4;letter-spacing:.06em">SEND</div>
+                  <button onClick="{{ stompSend }}" style="background:var(--accent,#2dd4a7);border:none;border-radius:7px;padding:7px 16px;color:#06120d;font:600 12px 'IBM Plex Sans';cursor:pointer" style-hover="filter:brightness(1.08)">Send</button>
+                </div>
+                <label style="display:block;font:600 10px 'IBM Plex Sans';letter-spacing:.1em;text-transform:uppercase;color:#59616f;margin-bottom:6px">Destination</label>
+                <input value="{{ stompSendDest }}" onChange="{{ onStompSendDest }}" placeholder="/app/hello" spellcheck="false" style="width:100%;background:#0c0f15;border:1px solid #1c232f;border-radius:7px;padding:8px 11px;color:#dce1ea;font:13px 'IBM Plex Mono',monospace;outline:none;margin-bottom:10px" style-focus="border-color:var(--accent,#2dd4a7)" />
+                <label style="display:block;font:600 10px 'IBM Plex Sans';letter-spacing:.1em;text-transform:uppercase;color:#59616f;margin-bottom:6px">Body</label>
+                <textarea value="{{ stompBody }}" onChange="{{ onStompBody }}" spellcheck="false" style="width:100%;flex:1;min-height:96px;resize:vertical;background:#0c0f15;border:1px solid #1c232f;border-radius:8px;padding:11px 12px;color:#cdd6e0;font:12.5px/1.5 'IBM Plex Mono',monospace;outline:none" style-focus="border-color:var(--accent,#2dd4a7)"></textarea>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- RSOCKET -->
+          <sc-if value="{{ isRsocket }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;gap:3px;background:#0c0f15;border:1px solid #1c232f;border-radius:9px;padding:3px;flex-wrap:wrap">
+              <sc-for list="{{ rsModels }}" as="m" hint-placeholder-count="4">
+                <button onClick="{{ m.onClick }}" style="{{ m.style }}">{{ m.label }}</button>
+              </sc-for>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 160px;gap:14px">
+              <div>
+                <label style="display:block;font:600 10px 'IBM Plex Sans';letter-spacing:.1em;text-transform:uppercase;color:#59616f;margin-bottom:6px">Route <span style="text-transform:none;letter-spacing:0;color:#3f4754;font-weight:400">(routing metadata)</span></label>
+                <input value="{{ rsRoute }}" onChange="{{ onRsRoute }}" placeholder="greeting" spellcheck="false" style="width:100%;background:#0c0f15;border:1px solid #1c232f;border-radius:7px;padding:8px 11px;color:#dce1ea;font:13px 'IBM Plex Mono',monospace;outline:none" style-focus="border-color:var(--accent,#2dd4a7)" />
+              </div>
+              <div>
+                <label style="display:block;font:600 10px 'IBM Plex Sans';letter-spacing:.1em;text-transform:uppercase;color:#59616f;margin-bottom:6px">Initial requestN</label>
+                <input value="{{ rsInitialN }}" onChange="{{ onRsInitialN }}" spellcheck="false" style="width:100%;background:#0c0f15;border:1px solid #1c232f;border-radius:7px;padding:8px 11px;color:#dce1ea;font:13px 'IBM Plex Mono',monospace;outline:none" style-focus="border-color:var(--accent,#2dd4a7)" />
+              </div>
+            </div>
+            <div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:8px;flex-wrap:wrap">
+                <label style="font:600 10px 'IBM Plex Sans';letter-spacing:.1em;text-transform:uppercase;color:#59616f">Data payload</label>
+                <div style="display:flex;gap:8px">
+                  <sc-if value="{{ rsIsChannel }}" hint-placeholder-val="{{ false }}">
+                    <button onClick="{{ rsChannelPush }}" style="background:#151a22;border:1px solid #2a3340;border-radius:7px;padding:7px 13px;color:#dce1ea;font:600 12px 'IBM Plex Sans';cursor:pointer" style-hover="background:#1c2330">Push frame</button>
+                    <button onClick="{{ rsChannelComplete }}" style="background:#151a22;border:1px solid #2a3340;border-radius:7px;padding:7px 13px;color:#8a93a4;font:600 12px 'IBM Plex Sans';cursor:pointer" style-hover="background:#1c2330">Complete</button>
+                  </sc-if>
+                  <button onClick="{{ rsRequest }}" style="background:var(--accent,#2dd4a7);border:none;border-radius:7px;padding:8px 18px;color:#06120d;font:600 12.5px 'IBM Plex Sans';cursor:pointer" style-hover="filter:brightness(1.08)">{{ rsRequestLabel }}</button>
+                </div>
+              </div>
+              <textarea value="{{ rsData }}" onChange="{{ onRsData }}" spellcheck="false" style="width:100%;min-height:120px;resize:vertical;background:#0c0f15;border:1px solid #1c232f;border-radius:8px;padding:12px 13px;color:#cdd6e0;font:12.5px/1.5 'IBM Plex Mono',monospace;outline:none" style-focus="border-color:var(--accent,#2dd4a7)"></textarea>
+              <div style="margin-top:8px;font:11.5px 'IBM Plex Sans';color:#5a6270;line-height:1.5">⚗ Experimental — sends SETUP with composite-metadata / <span style="font-family:'IBM Plex Mono',monospace">application/json</span> over the WebSocket transport (Spring-style, no frame-length prefix).</div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+
+      <!-- divider -->
+      <div onMouseDown="{{ onDragStart }}" style="flex:none;width:7px;cursor:col-resize;background:#0b0e13;border-left:1px solid #1c232f;border-right:1px solid #1c232f;display:flex;align-items:center;justify-content:center" style-hover="background:#11161e">
+        <div style="height:38px;width:3px;border-radius:3px;background:#2a3340"></div>
+      </div>
+
+      <!-- ============ RESULTS ============ -->
+      <div data-screen-label="Results" style="flex:1;display:flex;flex-direction:column;min-height:0;background:#0a0c10">
+        <div style="flex:none;display:flex;align-items:center;gap:11px;padding:10px 16px;border-bottom:1px solid #1c232f;flex-wrap:wrap">
+          <div style="display:flex;gap:3px;background:#0c0f15;border:1px solid #1c232f;border-radius:9px;padding:3px">
+            <sc-for list="{{ resultTabs }}" as="t" hint-placeholder-count="3">
+              <button onClick="{{ t.onClick }}" style="{{ t.style }}">{{ t.label }}</button>
+            </sc-for>
+          </div>
+          <span style="font:11.5px 'IBM Plex Mono',monospace;color:#59616f">{{ filteredCount }}/{{ totalCount }}</span>
+          <div style="flex:1"></div>
+          <input value="{{ filterText }}" onChange="{{ onFilter }}" placeholder="filter…" spellcheck="false" style="width:160px;background:#0c0f15;border:1px solid #1c232f;border-radius:7px;padding:6px 11px;color:#dce1ea;font:12px 'IBM Plex Mono',monospace;outline:none" style-focus="border-color:var(--accent,#2dd4a7)" />
+          <div style="display:flex;gap:4px">
+            <sc-for list="{{ filterDirs }}" as="d" hint-placeholder-count="4">
+              <button onClick="{{ d.onClick }}" style="{{ d.style }}">{{ d.label }}</button>
+            </sc-for>
+          </div>
+          <button onClick="{{ clearMessages }}" style="background:transparent;border:1px solid #1e2632;border-radius:7px;padding:6px 12px;color:#8a93a4;font:600 11.5px 'IBM Plex Sans';cursor:pointer" style-hover="color:#ff7b72;border-color:rgba(255,123,114,.3)">Clear</button>
+        </div>
+
+        <!-- active subscriptions -->
+        <sc-if value="{{ hasSubs }}" hint-placeholder-val="{{ false }}">
+          <div style="flex:none;display:flex;align-items:center;gap:8px;padding:8px 16px;border-bottom:1px solid #1c232f;background:#0b0e13;flex-wrap:wrap">
+            <span style="font:700 9.5px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:#59616f">ACTIVE</span>
+            <sc-for list="{{ subRows }}" as="s" hint-placeholder-count="1">
+              <div style="display:flex;align-items:center;gap:7px;background:#11161e;border:1px solid #232c39;border-radius:20px;padding:4px 6px 4px 11px">
+                <span style="width:6px;height:6px;border-radius:50%;background:var(--accent,#2dd4a7);animation:sb-pulse 1.6s infinite"></span>
+                <span style="font:12px 'IBM Plex Mono',monospace;color:#c4ccd8">{{ s.label }}</span>
+                <span onClick="{{ s.onCancel }}" style="cursor:pointer;color:#59616f;font-size:15px;line-height:1;padding:0 4px;border-radius:50%" style-hover="color:#ff7b72">×</span>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <div style="flex:1;overflow-y:auto;min-height:0">
+          <!-- MESSAGES -->
+          <sc-if value="{{ tabMessages }}" hint-placeholder-val="{{ true }}">
+            <sc-if value="{{ noMessages }}" hint-placeholder-val="{{ true }}">
+              <div style="height:100%;display:flex;align-items:center;justify-content:center;padding:30px">
+                <div style="max-width:440px;text-align:center">
+                  <div style="font:700 14px 'IBM Plex Mono',monospace;color:#8a93a4;margin-bottom:14px">Awaiting frames</div>
+                  <div style="font:13px/1.7 'IBM Plex Sans';color:#5a6270;margin-bottom:20px">Pick a protocol, enter an endpoint, hit <span style="color:var(--accent,#2dd4a7);font-weight:600">Connect</span>, then send. Incoming messages stream here newest-first.</div>
+                  <button onClick="{{ fillSample }}" style="background:#11161e;border:1px solid #232c39;border-radius:8px;padding:9px 15px;color:#c4ccd8;font:13px 'IBM Plex Mono',monospace;cursor:pointer" style-hover="border-color:var(--accent,#2dd4a7);color:var(--accent,#2dd4a7)">Try wss://ws.postman-echo.com/raw</button>
+                </div>
+              </div>
+            </sc-if>
+            <div style="display:flex;flex-direction:column;gap:9px;padding:14px 16px">
+              <sc-for list="{{ msgRows }}" as="m" hint-placeholder-count="0">
+                <div style="{{ m.cardStyle }}">
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <span style="{{ m.badgeStyle }}">{{ m.dirLabel }}</span>
+                    <span style="flex:1;min-width:0;font:12.5px 'IBM Plex Mono',monospace;color:#9aa3b2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ m.label }}</span>
+                    <sc-if value="{{ m.hasLat }}" hint-placeholder-val="{{ false }}">
+                      <span style="font:11px 'IBM Plex Mono',monospace;color:var(--accent,#2dd4a7)">{{ m.latencyStr }}</span>
+                    </sc-if>
+                    <span style="font:11px 'IBM Plex Mono',monospace;color:#4a525f">{{ m.sizeStr }}</span>
+                    <span style="font:11px 'IBM Plex Mono',monospace;color:#4a525f">{{ m.tsStr }}</span>
+                  </div>
+                  {{ m.bodyEl }}
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <!-- RAW -->
+          <sc-if value="{{ tabRaw }}" hint-placeholder-val="{{ false }}">
+            <pre style="margin:0;padding:16px;font:12px/1.6 'IBM Plex Mono',monospace;color:#9aa3b2;white-space:pre-wrap;word-break:break-word">{{ rawDump }}</pre>
+          </sc-if>
+
+          <!-- METRICS -->
+          <sc-if value="{{ tabMetrics }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:18px 16px">
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:11px;margin-bottom:18px">
+                <div style="background:#0b0e13;border:1px solid #1c232f;border-radius:10px;padding:14px 16px">
+                  <div style="font:600 10px 'IBM Plex Sans';letter-spacing:.1em;text-transform:uppercase;color:#59616f">Messages</div>
+                  <div style="font:700 26px 'IBM Plex Mono',monospace;color:#eef2f7;margin-top:4px">{{ mTotal }}</div>
+                </div>
+                <div style="background:#0b0e13;border:1px solid #1c232f;border-radius:10px;padding:14px 16px">
+                  <div style="font:600 10px 'IBM Plex Sans';letter-spacing:.1em;text-transform:uppercase;color:#59616f">In / Out</div>
+                  <div style="font:700 26px 'IBM Plex Mono',monospace;margin-top:4px"><span style="color:#58a6ff">{{ mIn }}</span><span style="color:#3f4754"> / </span><span style="color:var(--accent,#2dd4a7)">{{ mOut }}</span></div>
+                </div>
+                <div style="background:#0b0e13;border:1px solid #1c232f;border-radius:10px;padding:14px 16px">
+                  <div style="font:600 10px 'IBM Plex Sans';letter-spacing:.1em;text-transform:uppercase;color:#59616f">Avg latency</div>
+                  <div style="font:700 26px 'IBM Plex Mono',monospace;color:#eef2f7;margin-top:4px">{{ mAvgLatStr }}</div>
+                </div>
+                <div style="background:#0b0e13;border:1px solid #1c232f;border-radius:10px;padding:14px 16px">
+                  <div style="font:600 10px 'IBM Plex Sans';letter-spacing:.1em;text-transform:uppercase;color:#59616f">Errors</div>
+                  <div style="font:700 26px 'IBM Plex Mono',monospace;color:#ff7b72;margin-top:4px">{{ mErr }}</div>
+                </div>
+                <div style="background:#0b0e13;border:1px solid #1c232f;border-radius:10px;padding:14px 16px">
+                  <div style="font:600 10px 'IBM Plex Sans';letter-spacing:.1em;text-transform:uppercase;color:#59616f">Bytes in / out</div>
+                  <div style="font:700 17px 'IBM Plex Mono',monospace;color:#c4ccd8;margin-top:8px">{{ mBytesInStr }} <span style="color:#3f4754">/</span> {{ mBytesOutStr }}</div>
+                </div>
+              </div>
+              <div style="background:#0b0e13;border:1px solid #1c232f;border-radius:10px;padding:16px">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px">
+                  <div style="font:600 10px 'IBM Plex Sans';letter-spacing:.1em;text-transform:uppercase;color:#59616f">Throughput · last 30s</div>
+                  <div style="font:600 12px 'IBM Plex Sans';color:#8a93a4">~{{ mRate }} <span style="color:#59616f">msg/s</span></div>
+                </div>
+                <div style="display:flex;align-items:flex-end;gap:2px;height:96px">
+                  <sc-for list="{{ bars }}" as="b" hint-placeholder-count="30">
+                    <div style="{{ b.style }}"></div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#d4662b&quot;},&quot;density&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;comfortable&quot;,&quot;compact&quot;],&quot;default&quot;:&quot;comfortable&quot;}}">
+class Component extends DCLogic {
+  state = {
+    protocol: 'ws', url: '',
+    status: 'idle', statusText: 'Not connected', latency: null,
+    messages: [], subscriptions: [], collections: [], history: [],
+    resultTab: 'messages', sidebarTab: 'collections',
+    filterText: '', filterDir: 'all', splitW: 480,
+    wsPayload: '{\n  "hello": "world"\n}', wsProtocols: '',
+    stompSubDest: '/topic/messages', stompSendDest: '/app/hello',
+    stompBody: '{\n  "name": "QA"\n}',
+    stompConnectHeaders: [{ k: '', v: '' }], stompSendHeaders: [{ k: '', v: '' }],
+    rsModel: 'rr', rsRoute: 'greeting', rsData: '{\n  "name": "QA"\n}', rsInitialN: '2147483647'
+  };
+  _mid = 0; _client = null; _sendTimes = {}; _activeChannel = null;
+
+  componentDidMount() {
+    try {
+      var c = JSON.parse(localStorage.getItem('sktool.collections') || 'null');
+      var h = JSON.parse(localStorage.getItem('sktool.history') || 'null');
+      var f = JSON.parse(localStorage.getItem('sktool.form') || 'null');
+      var patch = {};
+      if (Array.isArray(c)) patch.collections = c;
+      if (Array.isArray(h)) patch.history = h;
+      if (f && typeof f === 'object') Object.assign(patch, f);
+      if (Object.keys(patch).length) this.setState(patch);
+    } catch (e) {}
+    this._applyTheme();
+    window.addEventListener('mousemove', this._onDragMove);
+    window.addEventListener('mouseup', this._onDragEnd);
+    window.addEventListener('beforeunload', this._saveForm);
+  }
+  componentDidUpdate() { this._applyTheme(); }
+  componentWillUnmount() {
+    this._saveForm();
+    if (this._client) try { this._client.close(); } catch (e) {}
+    window.removeEventListener('mousemove', this._onDragMove);
+    window.removeEventListener('mouseup', this._onDragEnd);
+    window.removeEventListener('beforeunload', this._saveForm);
+  }
+
+  _setRoot = (el) => { this._root = el; if (el) this._applyTheme(); };
+  _setSplit = (el) => { this._splitArea = el; };
+  _applyTheme = () => {
+    if (!this._root) return;
+    this._root.style.setProperty('--accent', this.props.accent || '#2dd4a7');
+    var compact = (this.props.density || 'comfortable') === 'compact';
+    this._root.style.setProperty('--pad-y', compact ? '6px' : '9px');
+    this._root.style.setProperty('--fs', compact ? '12px' : '12.5px');
+  };
+  _onDragStart = (e) => { this._dragging = true; e.preventDefault(); };
+  _onDragMove = (e) => {
+    if (!this._dragging || !this._splitArea) return;
+    var r = this._splitArea.getBoundingClientRect();
+    var w = e.clientX - r.left;
+    this.setState({ splitW: Math.max(320, Math.min(r.width - 360, w)) });
+  };
+  _onDragEnd = () => { this._dragging = false; };
+
+  setField = (k) => (e) => this.setState({ [k]: e.target.value });
+  setProtocol = (p) => this.setState({ protocol: p });
+  _rowsToObj = (rows) => { var o = {}; (rows || []).forEach(function (r) { if (r.k && r.k.trim()) o[r.k.trim()] = r.v; }); return o; };
+  _setHeader = (field, i, key) => (e) => {
+    var val = e.target.value;
+    this.setState(function (s) { var rows = s[field].slice(); rows[i] = Object.assign({}, rows[i], { [key]: val }); return { [field]: rows }; });
+  };
+  _addHeader = (field) => () => this.setState(function (s) { return { [field]: s[field].concat([{ k: '', v: '' }]) }; });
+  _removeHeader = (field, i) => () => this.setState(function (s) {
+    var rows = s[field].filter(function (_, j) { return j !== i; });
+    return { [field]: rows.length ? rows : [{ k: '', v: '' }] };
+  });
+
+  addMsg = (m) => {
+    var U = (window.Sockets && window.Sockets.util) || { tryParseJSON: function () { return null; }, byteLen: function (s) { return s.length; } };
+    var raw = m.raw == null ? '' : String(m.raw);
+    var parsed = U.tryParseJSON(raw);
+    var msg = {
+      id: ++this._mid, dir: m.dir || 'sys', kind: m.kind || (m.dir === 'in' || m.dir === 'out' ? 'msg' : 'sys'),
+      ts: Date.now(), label: m.label || '', size: m.size != null ? m.size : U.byteLen(raw),
+      raw: raw, pretty: parsed ? JSON.stringify(parsed, null, 2) : raw, isJson: !!parsed, latency: m.latency
+    };
+    this.setState(function (s) { return { messages: [msg].concat(s.messages).slice(0, 1000) }; });
+  };
+  clearMessages = () => this.setState({ messages: [] });
+  fillSample = () => this.setState({ protocol: 'ws', url: 'wss://ws.postman-echo.com/raw' });
+
+  _ready = () => this._client && this._client.ready();
+  _err = (txt) => this.addMsg({ dir: 'sys', kind: 'err', raw: txt });
+
+  connect = () => {
+    var S = this.state;
+    if (!S.url.trim()) { this._err('Enter an endpoint URL first.'); return; }
+    var Sk = window.Sockets;
+    if (!Sk) { this._err('Protocol library not loaded.'); return; }
+    this.disconnect(true);
+    this.setState({ status: 'connecting', statusText: 'Connecting…', latency: null, subscriptions: [] });
+    this._pushHistory('connect'); this._saveForm();
+    var self = this, p = S.protocol;
+    if (p === 'ws') {
+      this._client = new Sk.WSClient({
+        url: S.url, protocols: S.wsProtocols,
+        onOpen: function () { self.setState({ status: 'open', statusText: 'Connected' }); self.addMsg({ dir: 'sys', raw: 'WebSocket open · ' + S.url }); },
+        onMessage: function (t, fmt) { self.addMsg({ dir: 'in', raw: t, label: fmt }); },
+        onClose: function (c, r) { self.setState({ status: 'closed', statusText: 'Closed' + (c ? ' (' + c + ')' : '') }); self.addMsg({ dir: 'sys', raw: 'Closed' + (r ? ': ' + r : '') + ' · code ' + c }); },
+        onError: function (m) { self.setState({ status: 'error', statusText: 'Error' }); self._err(m); }
+      });
+    } else if (p === 'stomp') {
+      this._client = new Sk.StompClient({
+        url: S.url, connectHeaders: this._rowsToObj(S.stompConnectHeaders),
+        onConnected: function (h) { self.setState({ status: 'open', statusText: 'STOMP connected' }); self.addMsg({ dir: 'sys', raw: 'STOMP CONNECTED' + (h.version ? ' v' + h.version : '') }); },
+        onMessage: function (b, h) { self.addMsg({ dir: 'in', raw: b, label: h.destination || h.subscription || '' }); },
+        onReceipt: function (h) { self.addMsg({ dir: 'sys', raw: 'RECEIPT ' + (h['receipt-id'] || '') }); },
+        onStompError: function (b, h) { self.setState({ status: 'error', statusText: 'STOMP error' }); self._err((h.message || 'ERROR') + (b ? '\n' + b : '')); },
+        onClose: function (c) { self.setState({ status: 'closed', statusText: 'Closed' }); self.addMsg({ dir: 'sys', raw: 'Closed · code ' + c }); },
+        onError: function (m) { self.setState({ status: 'error', statusText: 'Error' }); self._err(m); }
+      });
+    } else {
+      this._client = new Sk.RSocketClient({
+        url: S.url,
+        onConnected: function () { self.setState({ status: 'open', statusText: 'RSocket ready' }); self.addMsg({ dir: 'sys', raw: 'RSocket connected · SETUP sent (composite-metadata / application/json)' }); },
+        onClose: function (c) { self.setState({ status: 'closed', statusText: 'Closed' }); self.addMsg({ dir: 'sys', raw: 'Closed · code ' + c }); },
+        onError: function (m) { self.setState({ status: 'error', statusText: 'Error' }); self._err(m); }
+      });
+    }
+    try { this._client.connect(); } catch (e) { this.setState({ status: 'error', statusText: 'Error' }); this._err(e.message); }
+  };
+  disconnect = (silent) => {
+    if (this._client) { try { this._client.close(); } catch (e) {} this._client = null; }
+    this._activeChannel = null;
+    if (silent !== true) { this.setState({ status: 'closed', statusText: 'Disconnected', subscriptions: [] }); this.addMsg({ dir: 'sys', raw: 'Disconnected by user' }); }
+  };
+  onDisconnect = () => this.disconnect(false);
+
+  wsSend = () => {
+    if (!this._ready()) { this._err('Not connected.'); return; }
+    try { var n = this._client.send(this.state.wsPayload); this.addMsg({ dir: 'out', raw: this.state.wsPayload, size: n }); this._pushHistory('send'); }
+    catch (e) { this._err(e.message); }
+  };
+  stompSubscribe = () => {
+    if (!this._ready()) { this._err('Connect first (STOMP needs a CONNECTED frame).'); return; }
+    var dest = this.state.stompSubDest.trim(); if (!dest) return;
+    var id = this._client.subscribe(dest);
+    this.setState(function (s) { return { subscriptions: s.subscriptions.concat([{ key: id, kind: 'stomp', label: dest }]) }; });
+    this.addMsg({ dir: 'out', raw: 'SUBSCRIBE ' + dest, label: dest });
+  };
+  stompSend = () => {
+    if (!this._ready()) { this._err('Connect first.'); return; }
+    var dest = this.state.stompSendDest.trim();
+    var n = this._client.send(dest, this.state.stompBody, this._rowsToObj(this.state.stompSendHeaders));
+    this.addMsg({ dir: 'out', raw: this.state.stompBody, label: dest, size: n }); this._pushHistory('send');
+  };
+
+  rsRequest = () => {
+    if (!this._ready()) { this._err('Connect first (sends SETUP).'); return; }
+    var S = this.state, self = this, route = S.rsRoute.trim(), data = S.rsData;
+    var initN = parseInt(S.rsInitialN, 10) || 2147483647;
+    if (S.rsModel === 'rr') {
+      var r = this._client.requestResponse(route, data, {
+        onPayload: function (d) {
+          var lat = self._sendTimes[r.streamId] != null ? Math.round(window.Sockets.util.now() - self._sendTimes[r.streamId]) : null;
+          self.addMsg({ dir: 'in', raw: d, label: route, latency: lat });
+          if (lat != null) self.setState({ latency: lat });
+        },
+        onError: function (c, m) { self._err('RSocket error ' + c + ': ' + m); }
+      });
+      this._sendTimes[r.streamId] = window.Sockets.util.now();
+      this.addMsg({ dir: 'out', raw: data, label: route + '  ·  request-response', size: r.bytes });
+    } else if (S.rsModel === 'stream') {
+      var r2 = this._client.requestStream(route, data, initN, {
+        onPayload: function (d) { self.addMsg({ dir: 'in', raw: d, label: route }); },
+        onComplete: function () { self._removeSub(r2.streamId); self.addMsg({ dir: 'sys', raw: 'Stream complete · ' + route }); },
+        onError: function (c, m) { self._removeSub(r2.streamId); self._err('RSocket error ' + c + ': ' + m); }
+      });
+      this.setState(function (s) { return { subscriptions: s.subscriptions.concat([{ key: r2.streamId, kind: 'rsocket', label: route + ' · stream' }]) }; });
+      this.addMsg({ dir: 'out', raw: data, label: route + '  ·  request-stream', size: r2.bytes });
+    } else if (S.rsModel === 'channel') {
+      var r3 = this._client.requestChannel(route, data, initN, {
+        onPayload: function (d) { self.addMsg({ dir: 'in', raw: d, label: route }); },
+        onComplete: function () { self._removeSub(r3.streamId); self._activeChannel = null; self.addMsg({ dir: 'sys', raw: 'Channel complete · ' + route }); },
+        onError: function (c, m) { self._removeSub(r3.streamId); self._err('RSocket error ' + c + ': ' + m); }
+      });
+      this._activeChannel = r3.streamId;
+      this.setState(function (s) { return { subscriptions: s.subscriptions.concat([{ key: r3.streamId, kind: 'rsocket', label: route + ' · channel' }]) }; });
+      this.addMsg({ dir: 'out', raw: data, label: route + '  ·  request-channel (open)', size: r3.bytes });
+    } else {
+      var r4 = this._client.fireAndForget(route, data);
+      this.addMsg({ dir: 'out', raw: data, label: route + '  ·  fire-and-forget', size: r4.bytes });
+    }
+    this._pushHistory('send');
+  };
+  rsChannelPush = () => {
+    if (this._activeChannel == null) { this._err('No open channel — send a request-channel first.'); return; }
+    var n = this._client.sendPayload(this._activeChannel, this.state.rsData, false);
+    this.addMsg({ dir: 'out', raw: this.state.rsData, label: 'channel push', size: n });
+  };
+  rsChannelComplete = () => {
+    if (this._activeChannel == null) return;
+    this._client.sendPayload(this._activeChannel, '', true);
+    this.addMsg({ dir: 'sys', raw: 'Channel completed by client' });
+  };
+
+  cancelSub = (sub) => () => {
+    if (this._client) {
+      if (sub.kind === 'stomp') { try { this._client.unsubscribe(sub.key); } catch (e) {} }
+      else { try { this._client.cancel(sub.key); } catch (e) {} }
+    }
+    if (sub.kind === 'rsocket' && sub.key === this._activeChannel) this._activeChannel = null;
+    this._removeSub(sub.key);
+    this.addMsg({ dir: 'sys', raw: 'Cancelled · ' + sub.label });
+  };
+  _removeSub = (key) => this.setState(function (s) { return { subscriptions: s.subscriptions.filter(function (x) { return x.key !== key; }) }; });
+
+  _leaf = (s) => { var parts = String(s || '').split('/').filter(Boolean); return parts.length ? parts[parts.length - 1] : ''; };
+  _defaultName = () => {
+    var S = this.state;
+    if (S.protocol === 'stomp') return this._leaf(S.stompSubDest) || this._leaf(S.stompSendDest) || 'subscription';
+    if (S.protocol === 'rsocket') return (S.rsRoute || '').trim() || 'route';
+    var leaf = this._leaf((S.url || '').replace(/^wss?:\/\//, '').split('?')[0]);
+    return leaf || 'connection';
+  };
+  saveCollection = () => {
+    var S = this.state; if (!S.url.trim()) { this._err('Enter a URL to save.'); return; }
+    var suggested = this._defaultName();
+    var name = (typeof window !== 'undefined' && window.prompt) ? window.prompt('Name this connection', suggested) : suggested;
+    if (name === null) return;                       // cancelled
+    name = (name || '').trim() || suggested;
+    var meta = { stompDest: S.stompSubDest, rsRoute: S.rsRoute, rsModel: S.rsModel };
+    var item = { id: 'c' + Date.now(), name: name, protocol: S.protocol, url: S.url, meta: meta };
+    this.setState(function (s) { return { collections: s.collections.concat([item]) }; }, () => this._persist('collections'));
+  };
+  loadCollection = (c) => () => {
+    var patch = { protocol: c.protocol, url: c.url };
+    if (c.meta) {
+      if (c.protocol === 'stomp' && c.meta.stompDest) patch.stompSubDest = c.meta.stompDest;
+      if (c.protocol === 'rsocket') { if (c.meta.rsRoute) patch.rsRoute = c.meta.rsRoute; if (c.meta.rsModel) patch.rsModel = c.meta.rsModel; }
+    }
+    this.setState(patch);
+  };
+  deleteCollection = (c) => (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.setState(function (s) { return { collections: s.collections.filter(function (x) { return x.id !== c.id; }) }; }, () => this._persist('collections')); };
+  _pushHistory = (action) => {
+    var S = this.state;
+    var item = { id: 'h' + Date.now() + Math.random().toString(36).slice(2, 5), protocol: S.protocol, url: S.url, action: action, ts: Date.now() };
+    this.setState(function (s) { return { history: [item].concat(s.history).slice(0, 40) }; }, () => this._persist('history'));
+  };
+  loadHistory = (h) => () => this.setState({ protocol: h.protocol, url: h.url });
+  clearHistory = () => this.setState({ history: [] }, () => this._persist('history'));
+  _persist = (which) => {
+    try {
+      if (which === 'collections') localStorage.setItem('sktool.collections', JSON.stringify(this.state.collections));
+      if (which === 'history') localStorage.setItem('sktool.history', JSON.stringify(this.state.history));
+    } catch (e) {}
+  };
+  _saveForm = () => {
+    try {
+      var S = this.state;
+      localStorage.setItem('sktool.form', JSON.stringify({
+        protocol: S.protocol, url: S.url, wsPayload: S.wsPayload, wsProtocols: S.wsProtocols,
+        stompSubDest: S.stompSubDest, stompSendDest: S.stompSendDest, stompBody: S.stompBody,
+        rsModel: S.rsModel, rsRoute: S.rsRoute, rsData: S.rsData, rsInitialN: S.rsInitialN
+      }));
+    } catch (e) {}
+  };
+
+  _hlJson = (pretty) => {
+    var out = [], last = 0, key = 0, m;
+    var re = /("(?:\\.|[^"\\])*")(\s*:)?|\b(true|false|null)\b|(-?\d+(?:\.\d+)?(?:[eE][+\-]?\d+)?)/g;
+    var push = function (txt, color) { if (txt) out.push(React.createElement('span', { key: key++, style: color ? { color: color } : null }, txt)); };
+    while ((m = re.exec(pretty)) !== null) {
+      push(pretty.slice(last, m.index), null);
+      if (m[1] !== undefined) {
+        if (m[2]) { push(m[1], '#58a6ff'); push(m[2], '#5a6270'); }   // key
+        else push(m[1], '#7ee0b5');                                    // string value
+      } else if (m[3] !== undefined) { push(m[3], '#d2a8ff'); }        // bool / null
+      else if (m[4] !== undefined) { push(m[4], '#f5c451'); }          // number
+      last = re.lastIndex;
+    }
+    push(pretty.slice(last), null);
+    return React.createElement('pre', { style: { margin: 0, font: "12.5px/1.55 'IBM Plex Mono',monospace", color: '#8a93a4', whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowX: 'auto' } }, out);
+  };
+  _plainPre = (txt) => React.createElement('pre', { style: { margin: 0, font: "12.5px/1.55 'IBM Plex Mono',monospace", color: '#cdd6e0', whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowX: 'auto' } }, txt);
+
+  _protoColor = (p) => p === 'ws' ? '#58a6ff' : p === 'stomp' ? '#a78bfa' : '#f5c451';
+  _badgeTint = (p) => p === 'ws' ? 'rgba(88,166,255,.16)' : p === 'stomp' ? 'rgba(167,139,250,.16)' : 'rgba(245,196,81,.16)';
+  _badge = (p) => ({ flex: 'none', font: "700 9.5px 'IBM Plex Mono',monospace", letterSpacing: '.07em', padding: '4px 7px', borderRadius: '5px', color: this._protoColor(p), background: this._badgeTint(p), border: '1px solid ' + this._protoColor(p) + '33' });
+
+  renderVals() {
+    var S = this.state, self = this;
+    var U = (window.Sockets && window.Sockets.util) || { formatBytes: function (n) { return n + ' B'; }, now: Date.now };
+    var FAM = "'IBM Plex Sans',system-ui,sans-serif";
+    var seg = function (active) { return { padding: '7px 13px', borderRadius: '6px', fontWeight: 600, fontSize: '12px', fontFamily: FAM, cursor: 'pointer', whiteSpace: 'nowrap', border: '1px solid transparent', background: active ? 'var(--accent,#2dd4a7)' : 'transparent', color: active ? '#06120d' : '#8a93a4', transition: 'background .12s,color .12s', display: 'inline-flex', alignItems: 'center', gap: '6px' }; };
+    var accentHex = this.props.accent || '#2dd4a7';
+    var hexToRgba = function (hex, a) {
+      var h = String(hex).replace('#', '');
+      if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+      var r = parseInt(h.slice(0, 2), 16) || 0, g = parseInt(h.slice(2, 4), 16) || 0, b = parseInt(h.slice(4, 6), 16) || 0;
+      return 'rgba(' + r + ',' + g + ',' + b + ',' + a + ')';
+    };
+    var protoSeg = function (active) { return { padding: '7px 13px', borderRadius: '6px', fontWeight: 600, fontSize: '12px', fontFamily: FAM, cursor: 'pointer', whiteSpace: 'nowrap', border: '1px solid ' + (active ? 'transparent' : hexToRgba(accentHex, .32)), background: active ? 'var(--accent,#2dd4a7)' : hexToRgba(accentHex, .15), color: active ? '#06120d' : 'var(--accent,#2dd4a7)', transition: 'background .12s,color .12s', display: 'inline-flex', alignItems: 'center', gap: '6px' }; };
+    var pill = function (active) { return { padding: '4px 10px', borderRadius: '5px', fontWeight: 600, fontSize: '11px', fontFamily: FAM, cursor: 'pointer', border: active ? '1px solid transparent' : '1px solid #2a3340', background: active ? 'var(--accent,#2dd4a7)' : 'transparent', color: active ? '#06120d' : '#8a93a4' }; };
+    var sideTab = function (active) { return { flex: 1, padding: '7px', borderRadius: '7px', fontWeight: 600, fontSize: '11.5px', fontFamily: FAM, cursor: 'pointer', border: '1px solid ' + (active ? '#232c39' : 'transparent'), background: active ? '#11161e' : 'transparent', color: active ? '#dce1ea' : '#59616f' }; };
+
+    var fmtTime = function (ts) { var d = new Date(ts); return d.toLocaleTimeString('en-GB', { hour12: false }) + '.' + String(d.getMilliseconds()).padStart(3, '0'); };
+
+    // messages
+    var dirMeta = { in: { l: 'IN', c: '#58a6ff' }, out: { l: 'OUT', c: 'var(--accent,#2dd4a7)' }, sys: { l: 'SYS', c: '#a78bfa' } };
+    var ft = (S.filterText || '').toLowerCase();
+    var filtered = S.messages.filter(function (m) {
+      return (S.filterDir === 'all' || m.dir === S.filterDir) &&
+        (!ft || m.raw.toLowerCase().indexOf(ft) > -1 || (m.label || '').toLowerCase().indexOf(ft) > -1);
+    });
+    var msgRows = filtered.map(function (m) {
+      var dm = dirMeta[m.dir] || dirMeta.sys;
+      var c = m.kind === 'err' ? '#ff7b72' : dm.c;
+      var bg = m.kind === 'err' ? 'rgba(255,123,114,.12)' : m.dir === 'in' ? 'rgba(88,166,255,.13)' : m.dir === 'out' ? 'rgba(45,212,167,.14)' : 'rgba(167,139,250,.13)';
+      return {
+        id: m.id, dirLabel: m.kind === 'err' ? 'ERR' : dm.l,
+        cardStyle: { border: '1px solid #1c232f', borderLeft: '3px solid ' + c, background: '#0c1016', borderRadius: '9px', padding: '10px 13px', display: 'flex', flexDirection: 'column', gap: '7px', animation: 'sb-in .18s ease' },
+        badgeStyle: { flex: 'none', fontWeight: 700, fontSize: '9.5px', fontFamily: "'IBM Plex Mono',monospace", letterSpacing: '.12em', padding: '3px 7px', borderRadius: '4px', color: c, background: bg },
+        label: m.label || '', tsStr: fmtTime(m.ts), sizeStr: U.formatBytes(m.size),
+        body: m.isJson ? m.pretty : m.raw, bodyEl: m.isJson ? self._hlJson(m.pretty) : self._plainPre(m.raw),
+        hasLat: m.latency != null, latencyStr: (m.latency != null ? m.latency + ' ms' : '')
+      };
+    });
+
+    var rawDump = S.messages.slice().reverse().map(function (m) {
+      var dm = dirMeta[m.dir] || dirMeta.sys;
+      var tag = (m.kind === 'err' ? 'ERR' : dm.l);
+      return '[' + fmtTime(m.ts) + '] ' + tag + (tag.length < 3 ? ' ' : '') + ' ' + (m.label ? '(' + m.label + ') ' : '') + '· ' + U.formatBytes(m.size) + '\n' + m.raw;
+    }).join('\n\n') || '— no frames —';
+
+    // metrics
+    var inC = 0, outC = 0, errC = 0, bIn = 0, bOut = 0, lats = [];
+    S.messages.forEach(function (m) {
+      if (m.dir === 'in') { inC++; bIn += m.size || 0; } else if (m.dir === 'out') { outC++; bOut += m.size || 0; }
+      if (m.kind === 'err') errC++;
+      if (m.latency != null) lats.push(m.latency);
+    });
+    var avgLat = lats.length ? Math.round(lats.reduce(function (a, b) { return a + b; }, 0) / lats.length) : null;
+    var nowMs = Date.now(), buckets = new Array(30).fill(0);
+    S.messages.forEach(function (m) { var age = Math.floor((nowMs - m.ts) / 1000); if (age >= 0 && age < 30) buckets[29 - age]++; });
+    var maxB = Math.max.apply(null, [1].concat(buckets));
+    var bars = buckets.map(function (v, i) {
+      return { key: i, style: { flex: 1, minWidth: 0, borderRadius: '2px 2px 0 0', background: v > 0 ? 'var(--accent,#2dd4a7)' : '#161d27', height: Math.max(2, v / maxB * 100) + '%', transition: 'height .25s' } };
+    });
+    var rate = (buckets.slice(-5).reduce(function (a, b) { return a + b; }, 0) / 5).toFixed(1);
+
+    var connected = S.status === 'open';
+    var busy = S.status === 'connecting';
+    var statusColors = { idle: '#59616f', connecting: '#f5c451', open: 'var(--accent,#2dd4a7)', closed: '#8a93a4', error: '#ff7b72' };
+    var sc = statusColors[S.status] || '#59616f';
+
+    var rsLabels = { rr: 'Request', stream: 'Request stream', channel: 'Open channel', fnf: 'Fire' };
+
+    return {
+      rootRef: this._setRoot, splitRef: this._setSplit, onDragStart: this._onDragStart,
+      composerStyle: { flex: 'none', width: S.splitW + 'px', overflowY: 'auto', overflowX: 'hidden', background: '#0a0c10', borderRight: '1px solid #1c232f' },
+
+      // sidebar
+      sidebarCollections: S.sidebarTab === 'collections', sidebarHistory: S.sidebarTab === 'history',
+      collTabStyle: sideTab(S.sidebarTab === 'collections'), histTabStyle: sideTab(S.sidebarTab === 'history'),
+      onCollTab: function () { self.setState({ sidebarTab: 'collections' }); }, onHistTab: function () { self.setState({ sidebarTab: 'history' }); },
+      noCollections: S.collections.length === 0,
+      collRows: S.collections.map(function (c) { return { id: c.id, name: c.name, proto: c.protocol.toUpperCase(), url: c.url, protoBadgeStyle: self._badge(c.protocol), onLoad: self.loadCollection(c), onDelete: self.deleteCollection(c) }; }),
+      hasHistory: S.history.length > 0, noHistory: S.history.length === 0,
+      histRows: S.history.map(function (h) { return { id: h.id, proto: h.protocol.toUpperCase(), url: h.url, action: h.action, tsStr: fmtTime(h.ts), protoBadgeStyle: self._badge(h.protocol), onLoad: self.loadHistory(h) }; }),
+      saveCollection: this.saveCollection, clearHistory: this.clearHistory,
+
+      // connection bar
+      protoBtns: [{ k: 'ws', l: 'WebSocket' }, { k: 'stomp', l: 'STOMP' }, { k: 'rsocket', l: 'RSocket' }].map(function (p) { return { key: p.k, label: p.l, style: seg(S.protocol === p.k), onClick: function () { self.setProtocol(p.k); } }; }),
+      url: S.url, onUrl: this.setField('url'),
+      connectBtnLabel: busy ? 'Connecting…' : connected ? 'Disconnect' : 'Connect',
+      connectBtnClick: (connected || busy) ? this.onDisconnect : this.connect,
+      connectBtnStyle: { padding: '9px 18px', borderRadius: '8px', fontWeight: 600, fontSize: '12.5px', fontFamily: FAM, cursor: 'pointer', whiteSpace: 'nowrap', border: (connected || busy) ? '1px solid #ff7b72' : '1px solid transparent', background: (connected || busy) ? 'transparent' : 'var(--accent,#2dd4a7)', color: (connected || busy) ? '#ff7b72' : '#06120d' },
+      statusDotStyle: { width: '9px', height: '9px', borderRadius: '50%', flex: 'none', background: sc, animation: busy ? 'sb-pulse 1.1s infinite' : 'none', boxShadow: connected ? '0 0 9px var(--accent,#2dd4a7)' : 'none' },
+      statusText: S.statusText, hasLatency: S.latency != null, latencyStr: (S.latency != null ? S.latency + ' ms RTT' : ''),
+
+      // composer flags + fields
+      isWs: S.protocol === 'ws', isStomp: S.protocol === 'stomp', isRsocket: S.protocol === 'rsocket',
+      wsPayload: S.wsPayload, onWsPayload: this.setField('wsPayload'), wsProtocols: S.wsProtocols, onWsProtocols: this.setField('wsProtocols'), wsSend: this.wsSend,
+      stompSubDest: S.stompSubDest, onStompSubDest: this.setField('stompSubDest'), stompSubscribe: this.stompSubscribe,
+      stompSendDest: S.stompSendDest, onStompSendDest: this.setField('stompSendDest'),
+      stompBody: S.stompBody, onStompBody: this.setField('stompBody'), stompSend: this.stompSend,
+      connHeaderRows: S.stompConnectHeaders.map(function (r, i) { return { k: r.k, v: r.v, onK: self._setHeader('stompConnectHeaders', i, 'k'), onV: self._setHeader('stompConnectHeaders', i, 'v'), onRemove: self._removeHeader('stompConnectHeaders', i) }; }),
+      sendHeaderRows: S.stompSendHeaders.map(function (r, i) { return { k: r.k, v: r.v, onK: self._setHeader('stompSendHeaders', i, 'k'), onV: self._setHeader('stompSendHeaders', i, 'v'), onRemove: self._removeHeader('stompSendHeaders', i) }; }),
+      addConnHeader: this._addHeader('stompConnectHeaders'), addSendHeader: this._addHeader('stompSendHeaders'),
+      rsModels: [{ k: 'rr', l: 'Req · Response' }, { k: 'stream', l: 'Req · Stream' }, { k: 'channel', l: 'Channel' }, { k: 'fnf', l: 'Fire & Forget' }].map(function (m) { return { key: m.k, label: m.l, style: seg(S.rsModel === m.k), onClick: function () { self.setState({ rsModel: m.k }); } }; }),
+      rsRoute: S.rsRoute, onRsRoute: this.setField('rsRoute'), rsData: S.rsData, onRsData: this.setField('rsData'),
+      rsInitialN: S.rsInitialN, onRsInitialN: this.setField('rsInitialN'),
+      rsRequest: this.rsRequest, rsChannelPush: this.rsChannelPush, rsChannelComplete: this.rsChannelComplete,
+      rsIsChannel: S.rsModel === 'channel', rsRequestLabel: rsLabels[S.rsModel],
+
+      // results
+      resultTabs: [{ k: 'messages', l: 'Messages' }, { k: 'raw', l: 'Raw' }, { k: 'metrics', l: 'Metrics' }].map(function (t) { return { key: t.k, label: t.l, style: seg(S.resultTab === t.k), onClick: function () { self.setState({ resultTab: t.k }); } }; }),
+      tabMessages: S.resultTab === 'messages', tabRaw: S.resultTab === 'raw', tabMetrics: S.resultTab === 'metrics',
+      filterText: S.filterText, onFilter: this.setField('filterText'),
+      filterDirs: [{ k: 'all', l: 'All' }, { k: 'in', l: 'In' }, { k: 'out', l: 'Out' }, { k: 'sys', l: 'Sys' }].map(function (d) { return { key: d.k, label: d.l, style: pill(S.filterDir === d.k), onClick: function () { self.setState({ filterDir: d.k }); } }; }),
+      filteredCount: filtered.length, totalCount: S.messages.length, clearMessages: this.clearMessages,
+      hasSubs: S.subscriptions.length > 0,
+      subRows: S.subscriptions.map(function (s) { return { key: s.key, label: s.label, kind: s.kind, onCancel: self.cancelSub(s) }; }),
+      hasMessages: filtered.length > 0, noMessages: S.messages.length === 0, fillSample: this.fillSample,
+      msgRows: msgRows, rawDump: rawDump,
+      mTotal: S.messages.length, mIn: inC, mOut: outC, mErr: errC,
+      mAvgLatStr: avgLat != null ? avgLat + ' ms' : '—', mRate: rate,
+      mBytesInStr: U.formatBytes(bIn), mBytesOutStr: U.formatBytes(bOut), bars: bars
+    };
+  }
+}
+</script>
+</body>
+</html>

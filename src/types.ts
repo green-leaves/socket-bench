@@ -1,0 +1,61 @@
+export type Protocol = "ws" | "stomp" | "rsocket";
+export type Direction = "in" | "out" | "sys";
+export type MsgKind = "msg" | "sys" | "err";
+export type RsModel = "rr" | "stream" | "channel" | "fnf";
+export type ResultTab = "messages" | "raw" | "metrics";
+export type SidebarTab = "collections" | "history";
+export type FilterDir = "all" | "in" | "out" | "sys";
+export type Status = "idle" | "connecting" | "open" | "closed" | "error";
+export type Density = "comfortable" | "compact";
+
+export interface Message {
+  id: number;
+  dir: Direction;
+  kind: MsgKind;
+  ts: number;
+  label: string;
+  size: number;
+  raw: string;
+  pretty: string;
+  isJson: boolean;
+  latency?: number | null;
+}
+
+export interface Subscription {
+  key: string | number;
+  kind: "stomp" | "rsocket";
+  label: string;
+}
+
+export interface CollectionMeta {
+  stompDest?: string;
+  rsRoute?: string;
+  rsModel?: RsModel;
+}
+
+export interface Collection {
+  id: string;
+  name: string;
+  protocol: Protocol;
+  url: string;
+  meta?: CollectionMeta;
+}
+
+export interface HistoryItem {
+  id: string;
+  protocol: Protocol;
+  url: string;
+  action: string;
+  ts: number;
+}
+
+export interface HeaderRow {
+  k: string;
+  v: string;
+}
+
+/** Settings exposed through the top-right tweaks panel (design props). */
+export interface Settings {
+  accent: string;
+  density: Density;
+}
