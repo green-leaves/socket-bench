@@ -17,7 +17,7 @@ export interface StompClientOpts {
 export class StompClient {
   opts: StompClientOpts;
   ws: WebSocket | null = null;
-  subId = 0;
+  subscriptionId = 0;
   connected = false;
 
   constructor(opts: StompClientOpts) {
@@ -25,63 +25,63 @@ export class StompClient {
   }
 
   connect(): void {
-    const o = this.opts;
-    const ws = new WebSocket(o.url, ["v12.stomp", "v11.stomp", "v10.stomp"]);
+    const opts = this.opts;
+    const ws = new WebSocket(opts.url, ["v12.stomp", "v11.stomp", "v10.stomp"]);
     this.ws = ws;
     ws.onopen = () => {
       const headers: Record<string, string> = Object.assign(
         { "accept-version": "1.2", "heart-beat": "0,0" },
-        o.connectHeaders || {},
+        opts.connectHeaders || {},
       );
-      if (o.host) headers.host = o.host;
+      if (opts.host) headers.host = opts.host;
       this._sendFrame("CONNECT", headers, "");
     };
-    ws.onmessage = (ev: MessageEvent) => this._onData(ev.data);
-    ws.onclose = (ev: CloseEvent) => {
+    ws.onmessage = (event: MessageEvent) => this._onData(event.data);
+    ws.onclose = (event: CloseEvent) => {
       this.connected = false;
-      o.onClose && o.onClose(ev.code, ev.reason);
+      opts.onClose && opts.onClose(event.code, event.reason);
     };
-    ws.onerror = () => o.onError && o.onError("WebSocket error (check URL / endpoint)");
+    ws.onerror = () => opts.onError && opts.onError("WebSocket error (check URL / endpoint)");
   }
 
   private _onData(raw: string | Blob | ArrayBuffer): void {
     if (raw instanceof Blob) {
-      raw.text().then((t) => this._onData(t));
+      raw.text().then((text) => this._onData(text));
       return;
     }
     let text: string;
     if (raw instanceof ArrayBuffer) text = dec.decode(new Uint8Array(raw));
     else text = raw;
     // a single ws message may contain multiple frames separated by NULL
-    const parts = text.split(NULL);
-    for (let i = 0; i < parts.length; i++) {
-      const chunk = parts[i];
-      if (!chunk || chunk.replace(/[\r\n]/g, "") === "") continue;
-      this._handleFrame(chunk);
+    const frames = text.split(NULL);
+    for (let index = 0; index < frames.length; index++) {
+      const frame = frames[index];
+      if (!frame || frame.replace(/[\r\n]/g, "") === "") continue;
+      this._handleFrame(frame);
     }
   }
 
   private _handleFrame(text: string): void {
-    const o = this.opts;
-    const sep = text.indexOf("\n\n");
-    const head = sep === -1 ? text : text.slice(0, sep);
-    const body = sep === -1 ? "" : text.slice(sep + 2);
+    const opts = this.opts;
+    const separator = text.indexOf("\n\n");
+    const head = separator === -1 ? text : text.slice(0, separator);
+    const body = separator === -1 ? "" : text.slice(separator + 2);
     const lines = head.split("\n");
     const command = (lines.shift() || "").trim();
     const headers: Record<string, string> = {};
-    lines.forEach((l) => {
-      const idx = l.indexOf(":");
-      if (idx > -1) headers[l.slice(0, idx)] = l.slice(idx + 1);
+    lines.forEach((line) => {
+      const colonIndex = line.indexOf(":");
+      if (colonIndex > -1) headers[line.slice(0, colonIndex)] = line.slice(colonIndex + 1);
     });
     if (command === "CONNECTED") {
       this.connected = true;
-      o.onConnected && o.onConnected(headers);
+      opts.onConnected && opts.onConnected(headers);
     } else if (command === "MESSAGE") {
-      o.onMessage && o.onMessage(body, headers);
+      opts.onMessage && opts.onMessage(body, headers);
     } else if (command === "RECEIPT") {
-      o.onReceipt && o.onReceipt(headers);
+      opts.onReceipt && opts.onReceipt(headers);
     } else if (command === "ERROR") {
-      o.onStompError && o.onStompError(body, headers);
+      opts.onStompError && opts.onStompError(body, headers);
     }
   }
 
@@ -92,19 +92,19 @@ export class StompClient {
   ): number {
     const lines = [command];
     headers = headers || {};
-    Object.keys(headers).forEach((k) => lines.push(k + ":" + headers[k]));
+    Object.keys(headers).forEach((headerName) => lines.push(headerName + ":" + headers[headerName]));
     const frame = lines.join("\n") + "\n\n" + (body || "") + NULL;
     this.ws!.send(frame);
     return byteLen(frame);
   }
 
   subscribe(destination: string, headers?: Record<string, string>): string {
-    const id = "sub-" + ++this.subId;
-    const h = Object.assign(
+    const id = "sub-" + ++this.subscriptionId;
+    const subscribeHeaders = Object.assign(
       { id, destination, ack: "auto" },
       headers || {},
     );
-    this._sendFrame("SUBSCRIBE", h, "");
+    this._sendFrame("SUBSCRIBE", subscribeHeaders, "");
     return id;
   }
 
@@ -113,7 +113,7 @@ export class StompClient {
   }
 
   send(destination: string, body: string, headers?: Record<string, string>): number {
-    const h = Object.assign(
+    const sendHeaders = Object.assign(
       {
         destination,
         "content-type": "application/json",
@@ -121,7 +121,7 @@ export class StompClient {
       },
       headers || {},
     );
-    return this._sendFrame("SEND", h, body || "");
+    return this._sendFrame("SEND", sendHeaders, body || "");
   }
 
   close(): void {

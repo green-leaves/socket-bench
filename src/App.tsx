@@ -16,36 +16,36 @@ import { type AppState, FORM_KEYS } from "./state/appState";
 import { useSocketConnection } from "./hooks/useSocketConnection";
 
 export function App() {
-  const { s, setS, patch, sRef } = useAppState();
-  const { addMsg, err, clearMessages } = useMessageLog(setS);
-  const { pushHistory, loadHistory, clearHistory } = useHistory(setS, sRef);
+  const { state, setState, patch, stateRef } = useAppState();
+  const { addMsg, err, clearMessages } = useMessageLog(setState);
+  const { pushHistory, loadHistory, clearHistory } = useHistory(setState, stateRef);
 
   const splitElRef = useRef<HTMLDivElement | null>(null);
   const draggingRef = useRef(false);
 
   /* ---------------- persistence ---------------- */
-  useEffect(() => write(KEYS.collections, s.collections), [s.collections]);
-  useEffect(() => write(KEYS.history, s.history), [s.history]);
-  useEffect(() => write(KEYS.settings, s.settings), [s.settings]);
+  useEffect(() => write(KEYS.collections, state.collections), [state.collections]);
+  useEffect(() => write(KEYS.history, state.history), [state.history]);
+  useEffect(() => write(KEYS.settings, state.settings), [state.settings]);
 
   const saveForm = useCallback(() => {
-    const cur = sRef.current;
+    const snapshot = stateRef.current;
     const form: Record<string, unknown> = {};
-    FORM_KEYS.forEach((k) => (form[k] = cur[k]));
+    FORM_KEYS.forEach((key) => (form[key] = snapshot[key]));
     write(KEYS.form, form);
   }, []);
 
   const conn = useSocketConnection({
-    patch, setS, sRef, addMsg, err, pushHistory, saveForm,
+    patch, setState, stateRef, addMsg, err, pushHistory, saveForm,
   });
 
   /* ---------------- drag + lifecycle ---------------- */
   useEffect(() => {
-    const onMove = (e: MouseEvent) => {
+    const onMove = (event: MouseEvent) => {
       if (!draggingRef.current || !splitElRef.current) return;
-      const r = splitElRef.current.getBoundingClientRect();
-      const w = e.clientX - r.left;
-      patch({ splitW: Math.max(320, Math.min(r.width - 360, w)) });
+      const rect = splitElRef.current.getBoundingClientRect();
+      const width = event.clientX - rect.left;
+      patch({ splitW: Math.max(320, Math.min(rect.width - 360, width)) });
     };
     const onUp = () => {
       draggingRef.current = false;
@@ -55,10 +55,10 @@ export function App() {
     window.addEventListener("beforeunload", saveForm);
     return () => {
       saveForm();
-      const c = conn.clientRef.current;
-      if (c)
+      const client = conn.clientRef.current;
+      if (client)
         try {
-          c.close();
+          client.close();
         } catch {
           /* ignore */
         }
@@ -68,9 +68,9 @@ export function App() {
     };
   }, [patch, saveForm]);
 
-  const onDragStart = (e: React.MouseEvent) => {
+  const onDragStart = (event: React.MouseEvent) => {
     draggingRef.current = true;
-    e.preventDefault();
+    event.preventDefault();
   };
 
   /* ---------------- messages ---------------- */
@@ -79,36 +79,36 @@ export function App() {
 
   /* ---------------- header editors ---------------- */
   const setHeader =
-    (field: "stompConnectHeaders" | "stompSendHeaders", i: number, key: "k" | "v") =>
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const val = e.target.value;
-      setS((prev) => {
+    (field: "stompConnectHeaders" | "stompSendHeaders", index: number, column: "key" | "value") =>
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const value = event.target.value;
+      setState((prev) => {
         const rows = prev[field].slice();
-        rows[i] = { ...rows[i], [key]: val };
+        rows[index] = { ...rows[index], [column]: value };
         return { ...prev, [field]: rows };
       });
     };
   const addHeader = (field: "stompConnectHeaders" | "stompSendHeaders") => () =>
-    setS((prev) => ({ ...prev, [field]: prev[field].concat([{ k: "", v: "" }]) }));
+    setState((prev) => ({ ...prev, [field]: prev[field].concat([{ key: "", value: "" }]) }));
   const removeHeader =
-    (field: "stompConnectHeaders" | "stompSendHeaders", i: number) => () =>
-      setS((prev) => {
-        const rows = prev[field].filter((_, j) => j !== i);
-        return { ...prev, [field]: rows.length ? rows : [{ k: "", v: "" }] };
+    (field: "stompConnectHeaders" | "stompSendHeaders", index: number) => () =>
+      setState((prev) => {
+        const rows = prev[field].filter((_, position) => position !== index);
+        return { ...prev, [field]: rows.length ? rows : [{ key: "", value: "" }] };
       });
 
   /* ---------------- collections / history ---------------- */
   const defaultName = () => {
-    const S = sRef.current;
-    if (S.protocol === "stomp")
-      return leaf(S.stompSubDest) || leaf(S.stompSendDest) || "subscription";
-    if (S.protocol === "rsocket") return (S.rsRoute || "").trim() || "route";
-    const l = leaf((S.url || "").replace(/^wss?:\/\//, "").split("?")[0]);
-    return l || "connection";
+    const snapshot = stateRef.current;
+    if (snapshot.protocol === "stomp")
+      return leaf(snapshot.stompSubDest) || leaf(snapshot.stompSendDest) || "subscription";
+    if (snapshot.protocol === "rsocket") return (snapshot.rsRoute || "").trim() || "route";
+    const leafName = leaf((snapshot.url || "").replace(/^wss?:\/\//, "").split("?")[0]);
+    return leafName || "connection";
   };
   const saveCollection = () => {
-    const S = sRef.current;
-    if (!S.url.trim()) {
+    const snapshot = stateRef.current;
+    if (!snapshot.url.trim()) {
       err("Enter a URL to save.");
       return;
     }
@@ -121,38 +121,38 @@ export function App() {
     const item: Collection = {
       id: "c" + Date.now(),
       name: finalName,
-      protocol: S.protocol,
-      url: S.url,
-      meta: { stompDest: S.stompSubDest, rsRoute: S.rsRoute, rsModel: S.rsModel },
+      protocol: snapshot.protocol,
+      url: snapshot.url,
+      meta: { stompDest: snapshot.stompSubDest, rsRoute: snapshot.rsRoute, rsModel: snapshot.rsModel },
     };
-    setS((prev) => ({ ...prev, collections: prev.collections.concat([item]) }));
+    setState((prev) => ({ ...prev, collections: prev.collections.concat([item]) }));
   };
-  const loadCollection = (c: Collection) => () => {
-    const p: Partial<AppState> = { protocol: c.protocol, url: c.url };
-    if (c.meta) {
-      if (c.protocol === "stomp" && c.meta.stompDest) p.stompSubDest = c.meta.stompDest;
-      if (c.protocol === "rsocket") {
-        if (c.meta.rsRoute) p.rsRoute = c.meta.rsRoute;
-        if (c.meta.rsModel) p.rsModel = c.meta.rsModel;
+  const loadCollection = (collection: Collection) => () => {
+    const updates: Partial<AppState> = { protocol: collection.protocol, url: collection.url };
+    if (collection.meta) {
+      if (collection.protocol === "stomp" && collection.meta.stompDest) updates.stompSubDest = collection.meta.stompDest;
+      if (collection.protocol === "rsocket") {
+        if (collection.meta.rsRoute) updates.rsRoute = collection.meta.rsRoute;
+        if (collection.meta.rsModel) updates.rsModel = collection.meta.rsModel;
       }
     }
-    patch(p);
+    patch(updates);
   };
-  const deleteCollection = (c: Collection) => (e: React.MouseEvent) => {
-    if (e && e.stopPropagation) e.stopPropagation();
-    setS((prev) => ({
+  const deleteCollection = (collection: Collection) => (event: React.MouseEvent) => {
+    if (event && event.stopPropagation) event.stopPropagation();
+    setState((prev) => ({
       ...prev,
-      collections: prev.collections.filter((x) => x.id !== c.id),
+      collections: prev.collections.filter((item) => item.id !== collection.id),
     }));
   };
   /* ---------------- form field setter ---------------- */
   const setField =
-    (k: keyof AppState) =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-      patch({ [k]: e.target.value } as Partial<AppState>);
+    (field: keyof AppState) =>
+    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      patch({ [field]: event.target.value } as Partial<AppState>);
 
   /* ---------------- theme + derived ---------------- */
-  const compact = s.settings.density === "compact";
+  const compact = state.settings.density === "compact";
   const rootStyle: CSSProperties = {
     height: "100vh",
     width: "100%",
@@ -163,21 +163,21 @@ export function App() {
     fontFamily: FAM,
     fontSize: "var(--fs,12.5px)",
     overflow: "hidden",
-    ["--accent" as never]: s.settings.accent,
+    ["--accent" as never]: state.settings.accent,
     ["--pad-y" as never]: compact ? "6px" : "9px",
     ["--fs" as never]: compact ? "12px" : "12.5px",
     ["--gap" as never]: "12px",
   };
 
-  const connected = s.status === "open";
-  const busy = s.status === "connecting";
+  const connected = state.status === "open";
+  const busy = state.status === "connecting";
 
   return (
     <div style={rootStyle}>
       <Sidebar
-        sidebarTab={s.sidebarTab}
-        collections={s.collections}
-        history={s.history}
+        sidebarTab={state.sidebarTab}
+        collections={state.collections}
+        history={state.history}
         onCollTab={() => patch({ sidebarTab: "collections" })}
         onHistTab={() => patch({ sidebarTab: "history" })}
         onSave={saveCollection}
@@ -189,19 +189,19 @@ export function App() {
 
       <main style={{ display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0 }}>
         <ConnectionBar
-          protocol={s.protocol}
-          url={s.url}
-          status={s.status}
-          statusText={s.statusText}
-          latency={s.latency}
-          settings={s.settings}
+          protocol={state.protocol}
+          url={state.url}
+          status={state.status}
+          statusText={state.statusText}
+          latency={state.latency}
+          settings={state.settings}
           connected={connected}
           busy={busy}
-          onProtocol={(p) => patch({ protocol: p })}
+          onProtocol={(protocol) => patch({ protocol })}
           onUrl={setField("url")}
           onToggleConnect={connected || busy ? () => conn.disconnect(false) : conn.connect}
-          onAccent={(accent) => patch({ settings: { ...s.settings, accent } })}
-          onDensity={(density) => patch({ settings: { ...s.settings, density } })}
+          onAccent={(accent) => patch({ settings: { ...state.settings, accent } })}
+          onDensity={(density) => patch({ settings: { ...state.settings, density } })}
         />
 
         <div
@@ -215,12 +215,12 @@ export function App() {
           }}
         >
           <Composer
-            state={s}
+            state={state}
             setField={setField}
             setHeader={setHeader}
             addHeader={addHeader}
             removeHeader={removeHeader}
-            onProtoModel={(m) => patch({ rsModel: m })}
+            onProtoModel={(model) => patch({ rsModel: model })}
             wsSend={conn.wsSend}
             stompSubscribe={conn.stompSubscribe}
             stompSend={conn.stompSend}
@@ -248,10 +248,10 @@ export function App() {
           </div>
 
           <Results
-            state={s}
-            onTab={(t) => patch({ resultTab: t })}
+            state={state}
+            onTab={(tab) => patch({ resultTab: tab })}
             onFilter={setField("filterText")}
-            onFilterDir={(d) => patch({ filterDir: d })}
+            onFilterDir={(dir) => patch({ filterDir: dir })}
             onClear={clearMessages}
             onCancelSub={conn.cancelSub}
             onFillSample={fillSample}

@@ -60,8 +60,8 @@ export const DEFAULT_STATE: AppState = {
   stompSubDest: "/topic/messages",
   stompSendDest: "/app/hello",
   stompBody: '{\n  "name": "QA"\n}',
-  stompConnectHeaders: [{ k: "", v: "" }],
-  stompSendHeaders: [{ k: "", v: "" }],
+  stompConnectHeaders: [{ key: "", value: "" }],
+  stompSendHeaders: [{ key: "", value: "" }],
   rsModel: "rr",
   rsRoute: "greeting",
   rsData: '{\n  "name": "QA"\n}',
@@ -84,14 +84,15 @@ export const FORM_KEYS: (keyof AppState)[] = [
 ];
 
 export function loadInitialState(): AppState {
-  const s: AppState = { ...DEFAULT_STATE };
-  const c = read<Collection[]>(KEYS.collections);
-  const h = read<HistoryItem[]>(KEYS.history);
-  const f = read<Partial<AppState>>(KEYS.form);
-  const set = read<Partial<Settings>>(KEYS.settings);
-  if (Array.isArray(c)) s.collections = c;
-  if (Array.isArray(h)) s.history = h;
-  if (f && typeof f === "object") Object.assign(s, f);
-  if (set && typeof set === "object") s.settings = { ...s.settings, ...set };
-  return s;
+  const state: AppState = { ...DEFAULT_STATE };
+  const savedCollections = read<Collection[]>(KEYS.collections);
+  const savedHistory = read<HistoryItem[]>(KEYS.history);
+  const savedForm = read<Partial<AppState>>(KEYS.form);
+  const savedSettings = read<Partial<Settings>>(KEYS.settings);
+  if (Array.isArray(savedCollections)) state.collections = savedCollections;
+  if (Array.isArray(savedHistory)) state.history = savedHistory;
+  if (savedForm && typeof savedForm === "object") Object.assign(state, savedForm);
+  if (savedSettings && typeof savedSettings === "object")
+    state.settings = { ...state.settings, ...savedSettings };
+  return state;
 }

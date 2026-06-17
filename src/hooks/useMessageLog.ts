@@ -13,39 +13,39 @@ export type AddMsg = {
   latency?: number | null;
 };
 
-export function useMessageLog(setS: Dispatch<SetStateAction<AppState>>) {
-  const midRef = useRef(0);
+export function useMessageLog(setState: Dispatch<SetStateAction<AppState>>) {
+  const messageIdRef = useRef(0);
 
   const addMsg = useCallback(
-    (m: AddMsg) => {
-      const raw = m.raw == null ? "" : String(m.raw);
+    (entry: AddMsg) => {
+      const raw = entry.raw == null ? "" : String(entry.raw);
       const parsed = util.tryParseJSON(raw);
-      const msg: Message = {
-        id: ++midRef.current,
-        dir: m.dir || "sys",
-        kind: m.kind || (m.dir === "in" || m.dir === "out" ? "msg" : "sys"),
+      const message: Message = {
+        id: ++messageIdRef.current,
+        dir: entry.dir || "sys",
+        kind: entry.kind || (entry.dir === "in" || entry.dir === "out" ? "msg" : "sys"),
         ts: Date.now(),
-        label: m.label || "",
-        size: m.size != null ? m.size : util.byteLen(raw),
+        label: entry.label || "",
+        size: entry.size != null ? entry.size : util.byteLen(raw),
         raw,
         pretty: parsed ? JSON.stringify(parsed, null, 2) : raw,
         isJson: !!parsed,
-        latency: m.latency,
+        latency: entry.latency,
       };
-      setS((prev) => ({ ...prev, messages: [msg, ...prev.messages].slice(0, 1000) }));
+      setState((prev) => ({ ...prev, messages: [message, ...prev.messages].slice(0, 1000) }));
     },
-    [setS],
+    [setState],
   );
 
   const err = useCallback(
-    (txt: string) => addMsg({ dir: "sys", kind: "err", raw: txt }),
+    (message: string) => addMsg({ dir: "sys", kind: "err", raw: message }),
     [addMsg],
   );
 
   const clearMessages = useCallback(
-    () => setS((prev) => ({ ...prev, messages: [] })),
-    [setS],
+    () => setState((prev) => ({ ...prev, messages: [] })),
+    [setState],
   );
 
-  return { midRef, addMsg, err, clearMessages };
+  return { messageIdRef, addMsg, err, clearMessages };
 }

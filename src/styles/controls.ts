@@ -52,35 +52,35 @@ export function sideTab(active: boolean): CSSProperties {
   };
 }
 
-export function protoColor(p: Protocol): string {
-  return p === "ws" ? tokens.blue : p === "stomp" ? tokens.purple : tokens.yellow;
+export function protoColor(protocol: Protocol): string {
+  return protocol === "ws" ? tokens.blue : protocol === "stomp" ? tokens.purple : tokens.yellow;
 }
 
-export function badgeTint(p: Protocol): string {
-  return p === "ws"
+export function badgeTint(protocol: Protocol): string {
+  return protocol === "ws"
     ? "rgba(88,166,255,.16)"
-    : p === "stomp"
+    : protocol === "stomp"
       ? "rgba(167,139,250,.16)"
       : "rgba(245,196,81,.16)";
 }
 
-export function badge(p: Protocol): CSSProperties {
+export function badge(protocol: Protocol): CSSProperties {
   return {
     flex: "none",
     font: "700 9.5px " + MONO,
     letterSpacing: ".07em",
     padding: "4px 7px",
     borderRadius: "5px",
-    color: protoColor(p),
-    background: badgeTint(p),
-    border: "1px solid " + protoColor(p) + "33",
+    color: protoColor(protocol),
+    background: badgeTint(protocol),
+    border: "1px solid " + protoColor(protocol) + "33",
   };
 }
 
-export const dirMeta: Record<Direction, { l: string; c: string }> = {
-  in: { l: "IN", c: tokens.blue },
-  out: { l: "OUT", c: tokens.accentVar },
-  sys: { l: "SYS", c: tokens.purple },
+export const dirMeta: Record<Direction, { label: string; color: string }> = {
+  in: { label: "IN", color: tokens.blue },
+  out: { label: "OUT", color: tokens.accentVar },
+  sys: { label: "SYS", color: tokens.purple },
 };
 
 export const statusColors: Record<Status, string> = {

@@ -50,8 +50,8 @@ export interface HistoryItem {
 }
 
 export interface HeaderRow {
-  k: string;
-  v: string;
+  key: string;
+  value: string;
 }
 
 /** Settings exposed through the top-right tweaks panel (design props). */

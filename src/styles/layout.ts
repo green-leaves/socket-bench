@@ -3,11 +3,11 @@ import type { Settings } from "../types";
 import { FAM, tokens } from "./tokens";
 
 export function fmtTime(ts: number): string {
-  const d = new Date(ts);
+  const date = new Date(ts);
   return (
-    d.toLocaleTimeString("en-GB", { hour12: false }) +
+    date.toLocaleTimeString("en-GB", { hour12: false }) +
     "." +
-    String(d.getMilliseconds()).padStart(3, "0")
+    String(date.getMilliseconds()).padStart(3, "0")
   );
 }
 

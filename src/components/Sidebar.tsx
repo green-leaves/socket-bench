@@ -8,14 +8,14 @@ interface Props {
   onCollTab: () => void;
   onHistTab: () => void;
   onSave: () => void;
-  onLoadCollection: (c: Collection) => () => void;
-  onDeleteCollection: (c: Collection) => (e: React.MouseEvent) => void;
-  onLoadHistory: (h: HistoryItem) => () => void;
+  onLoadCollection: (collection: Collection) => () => void;
+  onDeleteCollection: (collection: Collection) => (event: React.MouseEvent) => void;
+  onLoadHistory: (entry: HistoryItem) => () => void;
   onClearHistory: () => void;
 }
 
-export function Sidebar(p: Props) {
-  const isColl = p.sidebarTab === "collections";
+export function Sidebar(props: Props) {
+  const isCollections = props.sidebarTab === "collections";
   return (
     <aside
       style={{
@@ -60,19 +60,19 @@ export function Sidebar(p: Props) {
       </div>
 
       <div style={{ display: "flex", gap: "4px", padding: "10px 12px 4px" }}>
-        <button onClick={p.onCollTab} style={sideTab(isColl)}>
+        <button onClick={props.onCollTab} style={sideTab(isCollections)}>
           Collections
         </button>
-        <button onClick={p.onHistTab} style={sideTab(!isColl)}>
+        <button onClick={props.onHistTab} style={sideTab(!isCollections)}>
           History
         </button>
       </div>
 
       <div style={{ flex: 1, overflowY: "auto", padding: "8px 10px", minHeight: 0 }}>
-        {isColl ? (
+        {isCollections ? (
           <>
             <button
-              onClick={p.onSave}
+              onClick={props.onSave}
               className="sb-hover-border"
               style={{
                 width: "100%",
@@ -88,7 +88,7 @@ export function Sidebar(p: Props) {
             >
               + Save current endpoint
             </button>
-            {p.collections.length === 0 ? (
+            {props.collections.length === 0 ? (
               <div
                 style={{
                   padding: "18px 10px",
@@ -103,11 +103,11 @@ export function Sidebar(p: Props) {
                 Connect, then save.
               </div>
             ) : null}
-            {p.collections.map((c) => (
+            {props.collections.map((collection) => (
               <div
-                key={c.id}
+                key={collection.id}
                 className="sb-row"
-                onClick={p.onLoadCollection(c)}
+                onClick={props.onLoadCollection(collection)}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -119,7 +119,7 @@ export function Sidebar(p: Props) {
                   border: "1px solid transparent",
                 }}
               >
-                <span style={badge(c.protocol)}>{c.protocol.toUpperCase()}</span>
+                <span style={badge(collection.protocol)}>{collection.protocol.toUpperCase()}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div
                     style={{
@@ -130,7 +130,7 @@ export function Sidebar(p: Props) {
                       whiteSpace: "nowrap",
                     }}
                   >
-                    {c.name}
+                    {collection.name}
                   </div>
                   <div
                     style={{
@@ -142,11 +142,11 @@ export function Sidebar(p: Props) {
                       whiteSpace: "nowrap",
                     }}
                   >
-                    {c.url}
+                    {collection.url}
                   </div>
                 </div>
                 <span
-                  onClick={p.onDeleteCollection(c)}
+                  onClick={props.onDeleteCollection(collection)}
                   className="sb-del"
                   style={{
                     flex: "none",
@@ -164,9 +164,9 @@ export function Sidebar(p: Props) {
           </>
         ) : (
           <>
-            {p.history.length > 0 ? (
+            {props.history.length > 0 ? (
               <button
-                onClick={p.onClearHistory}
+                onClick={props.onClearHistory}
                 className="sb-danger"
                 style={{
                   width: "100%",
@@ -197,11 +197,11 @@ export function Sidebar(p: Props) {
                 show up here.
               </div>
             )}
-            {p.history.map((h) => (
+            {props.history.map((entry) => (
               <div
-                key={h.id}
+                key={entry.id}
                 className="sb-row"
-                onClick={p.onLoadHistory(h)}
+                onClick={props.onLoadHistory(entry)}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -213,7 +213,7 @@ export function Sidebar(p: Props) {
                   border: "1px solid transparent",
                 }}
               >
-                <span style={badge(h.protocol)}>{h.protocol.toUpperCase()}</span>
+                <span style={badge(entry.protocol)}>{entry.protocol.toUpperCase()}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div
                     style={{
@@ -224,10 +224,10 @@ export function Sidebar(p: Props) {
                       whiteSpace: "nowrap",
                     }}
                   >
-                    {h.url}
+                    {entry.url}
                   </div>
                   <div style={{ fontSize: "10px", color: "#59616f", marginTop: "2px" }}>
-                    {h.action} · {fmtTime(h.ts)}
+                    {entry.action} · {fmtTime(entry.ts)}
                   </div>
                 </div>
               </div>

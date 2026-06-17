@@ -7,42 +7,42 @@ import { JsonView, PlainView } from "./JsonView";
 
 interface Props {
   state: AppState;
-  onTab: (t: "messages" | "raw" | "metrics") => void;
-  onFilter: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onFilterDir: (d: FilterDir) => void;
+  onTab: (tab: "messages" | "raw" | "metrics") => void;
+  onFilter: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onFilterDir: (direction: FilterDir) => void;
   onClear: () => void;
-  onCancelSub: (s: Subscription) => () => void;
+  onCancelSub: (sub: Subscription) => () => void;
   onFillSample: () => void;
 }
 
-const RESULT_TABS: { k: "messages" | "raw" | "metrics"; l: string }[] = [
-  { k: "messages", l: "Messages" },
-  { k: "raw", l: "Raw" },
-  { k: "metrics", l: "Metrics" },
+const RESULT_TABS: { value: "messages" | "raw" | "metrics"; label: string }[] = [
+  { value: "messages", label: "Messages" },
+  { value: "raw", label: "Raw" },
+  { value: "metrics", label: "Metrics" },
 ];
-const FILTER_DIRS: { k: FilterDir; l: string }[] = [
-  { k: "all", l: "All" },
-  { k: "in", l: "In" },
-  { k: "out", l: "Out" },
-  { k: "sys", l: "Sys" },
+const FILTER_DIRS: { value: FilterDir; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "in", label: "In" },
+  { value: "out", label: "Out" },
+  { value: "sys", label: "Sys" },
 ];
 
-function MessageCard({ m }: { m: Message }) {
-  const dm = dirMeta[m.dir] || dirMeta.sys;
-  const c = m.kind === "err" ? "#ff7b72" : dm.c;
+function MessageCard({ message }: { message: Message }) {
+  const dirStyle = dirMeta[message.dir] || dirMeta.sys;
+  const accentColor = message.kind === "err" ? "#ff7b72" : dirStyle.color;
   const bg =
-    m.kind === "err"
+    message.kind === "err"
       ? "rgba(255,123,114,.12)"
-      : m.dir === "in"
+      : message.dir === "in"
         ? "rgba(88,166,255,.13)"
-        : m.dir === "out"
+        : message.dir === "out"
           ? "rgba(45,212,167,.14)"
           : "rgba(167,139,250,.13)";
   return (
     <div
       style={{
         border: "1px solid #1c232f",
-        borderLeft: "3px solid " + c,
+        borderLeft: "3px solid " + accentColor,
         background: "#0c1016",
         borderRadius: "9px",
         padding: "10px 13px",
@@ -62,11 +62,11 @@ function MessageCard({ m }: { m: Message }) {
             letterSpacing: ".12em",
             padding: "3px 7px",
             borderRadius: "4px",
-            color: c,
+            color: accentColor,
             background: bg,
           }}
         >
-          {m.kind === "err" ? "ERR" : dm.l}
+          {message.kind === "err" ? "ERR" : dirStyle.label}
         </span>
         <span
           style={{
@@ -79,50 +79,50 @@ function MessageCard({ m }: { m: Message }) {
             whiteSpace: "nowrap",
           }}
         >
-          {m.label || ""}
+          {message.label || ""}
         </span>
-        {m.latency != null ? (
+        {message.latency != null ? (
           <span style={{ font: "11px " + MONO, color: "var(--accent,#2dd4a7)" }}>
-            {m.latency} ms
+            {message.latency} ms
           </span>
         ) : null}
-        <span style={{ font: "11px " + MONO, color: "#4a525f" }}>{util.formatBytes(m.size)}</span>
-        <span style={{ font: "11px " + MONO, color: "#4a525f" }}>{fmtTime(m.ts)}</span>
+        <span style={{ font: "11px " + MONO, color: "#4a525f" }}>{util.formatBytes(message.size)}</span>
+        <span style={{ font: "11px " + MONO, color: "#4a525f" }}>{fmtTime(message.ts)}</span>
       </div>
-      {m.isJson ? <JsonView pretty={m.pretty} /> : <PlainView text={m.raw} />}
+      {message.isJson ? <JsonView pretty={message.pretty} /> : <PlainView text={message.raw} />}
     </div>
   );
 }
 
 function Metrics({ messages }: { messages: Message[] }) {
-  let inC = 0,
-    outC = 0,
-    errC = 0,
-    bIn = 0,
-    bOut = 0;
-  const lats: number[] = [];
-  messages.forEach((m) => {
-    if (m.dir === "in") {
-      inC++;
-      bIn += m.size || 0;
-    } else if (m.dir === "out") {
-      outC++;
-      bOut += m.size || 0;
+  let inboundCount = 0,
+    outboundCount = 0,
+    errorCount = 0,
+    bytesIn = 0,
+    bytesOut = 0;
+  const latencies: number[] = [];
+  messages.forEach((message) => {
+    if (message.dir === "in") {
+      inboundCount++;
+      bytesIn += message.size || 0;
+    } else if (message.dir === "out") {
+      outboundCount++;
+      bytesOut += message.size || 0;
     }
-    if (m.kind === "err") errC++;
-    if (m.latency != null) lats.push(m.latency);
+    if (message.kind === "err") errorCount++;
+    if (message.latency != null) latencies.push(message.latency);
   });
-  const avgLat = lats.length
-    ? Math.round(lats.reduce((a, b) => a + b, 0) / lats.length)
+  const avgLatency = latencies.length
+    ? Math.round(latencies.reduce((sum, value) => sum + value, 0) / latencies.length)
     : null;
-  const nowMs = Date.now();
+  const currentMs = Date.now();
   const buckets = new Array(30).fill(0);
-  messages.forEach((m) => {
-    const age = Math.floor((nowMs - m.ts) / 1000);
+  messages.forEach((message) => {
+    const age = Math.floor((currentMs - message.ts) / 1000);
     if (age >= 0 && age < 30) buckets[29 - age]++;
   });
-  const maxB = Math.max(1, ...buckets);
-  const rate = (buckets.slice(-5).reduce((a, b) => a + b, 0) / 5).toFixed(1);
+  const maxBucket = Math.max(1, ...buckets);
+  const rate = (buckets.slice(-5).reduce((sum, value) => sum + value, 0) / 5).toFixed(1);
 
   const card: CSSProperties = {
     background: "#0b0e13",
@@ -155,24 +155,24 @@ function Metrics({ messages }: { messages: Message[] }) {
         <div style={card}>
           <div style={capLabel}>In / Out</div>
           <div style={bigNum}>
-            <span style={{ color: "#58a6ff" }}>{inC}</span>
+            <span style={{ color: "#58a6ff" }}>{inboundCount}</span>
             <span style={{ color: "#3f4754" }}> / </span>
-            <span style={{ color: "var(--accent,#2dd4a7)" }}>{outC}</span>
+            <span style={{ color: "var(--accent,#2dd4a7)" }}>{outboundCount}</span>
           </div>
         </div>
         <div style={card}>
           <div style={capLabel}>Avg latency</div>
-          <div style={{ ...bigNum, color: "#eef2f7" }}>{avgLat != null ? avgLat + " ms" : "—"}</div>
+          <div style={{ ...bigNum, color: "#eef2f7" }}>{avgLatency != null ? avgLatency + " ms" : "—"}</div>
         </div>
         <div style={card}>
           <div style={capLabel}>Errors</div>
-          <div style={{ ...bigNum, color: "#ff7b72" }}>{errC}</div>
+          <div style={{ ...bigNum, color: "#ff7b72" }}>{errorCount}</div>
         </div>
         <div style={card}>
           <div style={capLabel}>Bytes in / out</div>
           <div style={{ font: "700 17px " + MONO, color: "#c4ccd8", marginTop: "8px" }}>
-            {util.formatBytes(bIn)} <span style={{ color: "#3f4754" }}>/</span>{" "}
-            {util.formatBytes(bOut)}
+            {util.formatBytes(bytesIn)} <span style={{ color: "#3f4754" }}>/</span>{" "}
+            {util.formatBytes(bytesOut)}
           </div>
         </div>
       </div>
@@ -184,15 +184,15 @@ function Metrics({ messages }: { messages: Message[] }) {
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "flex-end", gap: "2px", height: "96px" }}>
-          {buckets.map((v, i) => (
+          {buckets.map((count, index) => (
             <div
-              key={i}
+              key={index}
               style={{
                 flex: 1,
                 minWidth: 0,
                 borderRadius: "2px 2px 0 0",
-                background: v > 0 ? "var(--accent,#2dd4a7)" : "#161d27",
-                height: Math.max(2, (v / maxB) * 100) + "%",
+                background: count > 0 ? "var(--accent,#2dd4a7)" : "#161d27",
+                height: Math.max(2, (count / maxBucket) * 100) + "%",
                 transition: "height .25s",
               }}
             />
@@ -203,35 +203,35 @@ function Metrics({ messages }: { messages: Message[] }) {
   );
 }
 
-export function Results({ state: S, ...p }: Props) {
-  const ft = (S.filterText || "").toLowerCase();
-  const filtered = S.messages.filter(
-    (m) =>
-      (S.filterDir === "all" || m.dir === S.filterDir) &&
-      (!ft ||
-        m.raw.toLowerCase().indexOf(ft) > -1 ||
-        (m.label || "").toLowerCase().indexOf(ft) > -1),
+export function Results({ state, ...props }: Props) {
+  const filterQuery = (state.filterText || "").toLowerCase();
+  const filtered = state.messages.filter(
+    (message) =>
+      (state.filterDir === "all" || message.dir === state.filterDir) &&
+      (!filterQuery ||
+        message.raw.toLowerCase().indexOf(filterQuery) > -1 ||
+        (message.label || "").toLowerCase().indexOf(filterQuery) > -1),
   );
 
   const rawDump =
-    S.messages
+    state.messages
       .slice()
       .reverse()
-      .map((m) => {
-        const dm = dirMeta[m.dir] || dirMeta.sys;
-        const tag = m.kind === "err" ? "ERR" : dm.l;
+      .map((message) => {
+        const dirStyle = dirMeta[message.dir] || dirMeta.sys;
+        const tag = message.kind === "err" ? "ERR" : dirStyle.label;
         return (
           "[" +
-          fmtTime(m.ts) +
+          fmtTime(message.ts) +
           "] " +
           tag +
           (tag.length < 3 ? " " : "") +
           " " +
-          (m.label ? "(" + m.label + ") " : "") +
+          (message.label ? "(" + message.label + ") " : "") +
           "· " +
-          util.formatBytes(m.size) +
+          util.formatBytes(message.size) +
           "\n" +
-          m.raw
+          message.raw
         );
       })
       .join("\n\n") || "— no frames —";
@@ -253,33 +253,33 @@ export function Results({ state: S, ...p }: Props) {
         }}
       >
         <div style={{ display: "flex", gap: "3px", background: "#0c0f15", border: "1px solid #1c232f", borderRadius: "9px", padding: "3px" }}>
-          {RESULT_TABS.map((t) => (
-            <button key={t.k} onClick={() => p.onTab(t.k)} style={seg(S.resultTab === t.k)}>
-              {t.l}
+          {RESULT_TABS.map((option) => (
+            <button key={option.value} onClick={() => props.onTab(option.value)} style={seg(state.resultTab === option.value)}>
+              {option.label}
             </button>
           ))}
         </div>
         <span style={{ font: "11.5px " + MONO, color: "#59616f" }}>
-          {filtered.length}/{S.messages.length}
+          {filtered.length}/{state.messages.length}
         </span>
         <div style={{ flex: 1 }} />
         <input
-          value={S.filterText}
-          onChange={p.onFilter}
+          value={state.filterText}
+          onChange={props.onFilter}
           placeholder="filter…"
           spellCheck={false}
           className="sb-input"
           style={{ width: "160px", background: "#0c0f15", border: "1px solid #1c232f", borderRadius: "7px", padding: "6px 11px", color: "#dce1ea", font: "12px " + MONO, outline: "none" }}
         />
         <div style={{ display: "flex", gap: "4px" }}>
-          {FILTER_DIRS.map((d) => (
-            <button key={d.k} onClick={() => p.onFilterDir(d.k)} style={pill(S.filterDir === d.k)}>
-              {d.l}
+          {FILTER_DIRS.map((option) => (
+            <button key={option.value} onClick={() => props.onFilterDir(option.value)} style={pill(state.filterDir === option.value)}>
+              {option.label}
             </button>
           ))}
         </div>
         <button
-          onClick={p.onClear}
+          onClick={props.onClear}
           className="sb-danger"
           style={{ background: "transparent", border: "1px solid #1e2632", borderRadius: "7px", padding: "6px 12px", color: "#8a93a4", font: "600 11.5px 'IBM Plex Sans'", cursor: "pointer" }}
         >
@@ -287,7 +287,7 @@ export function Results({ state: S, ...p }: Props) {
         </button>
       </div>
 
-      {S.subscriptions.length > 0 && (
+      {state.subscriptions.length > 0 && (
         <div
           style={{
             flex: "none",
@@ -303,7 +303,7 @@ export function Results({ state: S, ...p }: Props) {
           <span style={{ font: "700 9.5px " + MONO, letterSpacing: ".12em", color: "#59616f" }}>
             ACTIVE
           </span>
-          {S.subscriptions.map((sub) => (
+          {state.subscriptions.map((sub) => (
             <div
               key={String(sub.key)}
               style={{
@@ -327,7 +327,7 @@ export function Results({ state: S, ...p }: Props) {
               />
               <span style={{ font: "12px " + MONO, color: "#c4ccd8" }}>{sub.label}</span>
               <span
-                onClick={p.onCancelSub(sub)}
+                onClick={props.onCancelSub(sub)}
                 className="sb-cancel"
                 style={{ cursor: "pointer", color: "#59616f", fontSize: "15px", lineHeight: 1, padding: "0 4px", borderRadius: "50%" }}
               >
@@ -339,8 +339,8 @@ export function Results({ state: S, ...p }: Props) {
       )}
 
       <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
-        {S.resultTab === "messages" &&
-          (S.messages.length === 0 ? (
+        {state.resultTab === "messages" &&
+          (state.messages.length === 0 ? (
             <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: "30px" }}>
               <div style={{ maxWidth: "440px", textAlign: "center" }}>
                 <div style={{ font: "700 14px " + MONO, color: "#8a93a4", marginBottom: "14px" }}>
@@ -352,7 +352,7 @@ export function Results({ state: S, ...p }: Props) {
                   send. Incoming messages stream here newest-first.
                 </div>
                 <button
-                  onClick={p.onFillSample}
+                  onClick={props.onFillSample}
                   className="sb-sample"
                   style={{ background: "#11161e", border: "1px solid #232c39", borderRadius: "8px", padding: "9px 15px", color: "#c4ccd8", font: "13px " + MONO, cursor: "pointer" }}
                 >
@@ -362,13 +362,13 @@ export function Results({ state: S, ...p }: Props) {
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "9px", padding: "14px 16px" }}>
-              {filtered.map((m) => (
-                <MessageCard key={m.id} m={m} />
+              {filtered.map((message) => (
+                <MessageCard key={message.id} message={message} />
               ))}
             </div>
           ))}
 
-        {S.resultTab === "raw" && (
+        {state.resultTab === "raw" && (
           <pre
             style={{
               margin: 0,
@@ -383,7 +383,7 @@ export function Results({ state: S, ...p }: Props) {
           </pre>
         )}
 
-        {S.resultTab === "metrics" && <Metrics messages={S.messages} />}
+        {state.resultTab === "metrics" && <Metrics messages={state.messages} />}
       </div>
     </div>
   );

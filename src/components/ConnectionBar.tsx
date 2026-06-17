@@ -11,22 +11,22 @@ interface Props {
   settings: Settings;
   connected: boolean;
   busy: boolean;
-  onProtocol: (p: Protocol) => void;
-  onUrl: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onProtocol: (protocol: Protocol) => void;
+  onUrl: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onToggleConnect: () => void;
   onAccent: (accent: string) => void;
   onDensity: (density: Density) => void;
 }
 
-const PROTOS: { k: Protocol; l: string }[] = [
-  { k: "ws", l: "WebSocket" },
-  { k: "stomp", l: "STOMP" },
-  { k: "rsocket", l: "RSocket" },
+const PROTOS: { value: Protocol; label: string }[] = [
+  { value: "ws", label: "WebSocket" },
+  { value: "stomp", label: "STOMP" },
+  { value: "rsocket", label: "RSocket" },
 ];
 
-export function ConnectionBar(p: Props) {
-  const accent = p.settings.accent;
-  const sc = statusColors[p.status] || "#59616f";
+export function ConnectionBar(props: Props) {
+  const accent = props.settings.accent;
+  const statusColor = statusColors[props.status] || "#59616f";
 
   const connectBtnStyle: CSSProperties = {
     padding: "9px 18px",
@@ -36,9 +36,9 @@ export function ConnectionBar(p: Props) {
     fontFamily: FAM,
     cursor: "pointer",
     whiteSpace: "nowrap",
-    border: p.connected || p.busy ? "1px solid #ff7b72" : "1px solid transparent",
-    background: p.connected || p.busy ? "transparent" : "var(--accent,#2dd4a7)",
-    color: p.connected || p.busy ? "#ff7b72" : "#06120d",
+    border: props.connected || props.busy ? "1px solid #ff7b72" : "1px solid transparent",
+    background: props.connected || props.busy ? "transparent" : "var(--accent,#2dd4a7)",
+    color: props.connected || props.busy ? "#ff7b72" : "#06120d",
   };
 
   const densityBtn = (active: boolean): CSSProperties => ({
@@ -75,20 +75,20 @@ export function ConnectionBar(p: Props) {
           padding: "3px",
         }}
       >
-        {PROTOS.map((pr) => (
+        {PROTOS.map((option) => (
           <button
-            key={pr.k}
-            onClick={() => p.onProtocol(pr.k)}
-            style={seg(p.protocol === pr.k)}
+            key={option.value}
+            onClick={() => props.onProtocol(option.value)}
+            style={seg(props.protocol === option.value)}
           >
-            {pr.l}
+            {option.label}
           </button>
         ))}
       </div>
 
       <input
-        value={p.url}
-        onChange={p.onUrl}
+        value={props.url}
+        onChange={props.onUrl}
         placeholder="wss://example.com/ws"
         spellCheck={false}
         className="sb-input"
@@ -105,8 +105,8 @@ export function ConnectionBar(p: Props) {
         }}
       />
 
-      <button onClick={p.onToggleConnect} className="sb-brighten" style={connectBtnStyle}>
-        {p.busy ? "Connecting…" : p.connected ? "Disconnect" : "Connect"}
+      <button onClick={props.onToggleConnect} className="sb-brighten" style={connectBtnStyle}>
+        {props.busy ? "Connecting…" : props.connected ? "Disconnect" : "Connect"}
       </button>
 
       <div
@@ -124,18 +124,18 @@ export function ConnectionBar(p: Props) {
             height: "9px",
             borderRadius: "50%",
             flex: "none",
-            background: sc,
-            animation: p.busy ? "sb-pulse 1.1s infinite" : "none",
-            boxShadow: p.connected ? "0 0 9px var(--accent,#2dd4a7)" : "none",
+            background: statusColor,
+            animation: props.busy ? "sb-pulse 1.1s infinite" : "none",
+            boxShadow: props.connected ? "0 0 9px var(--accent,#2dd4a7)" : "none",
           }}
         />
         <div style={{ lineHeight: 1.2 }}>
           <div style={{ font: "600 11.5px 'IBM Plex Sans'", color: "#c4ccd8" }}>
-            {p.statusText}
+            {props.statusText}
           </div>
-          {p.latency != null ? (
+          {props.latency != null ? (
             <div style={{ font: "11px " + MONO, color: "var(--accent,#2dd4a7)" }}>
-              {p.latency} ms RTT
+              {props.latency} ms RTT
             </div>
           ) : null}
         </div>
@@ -170,7 +170,7 @@ export function ConnectionBar(p: Props) {
           <input
             type="color"
             value={accent}
-            onChange={(e) => p.onAccent(e.target.value)}
+            onChange={(event) => props.onAccent(event.target.value)}
             style={{
               position: "absolute",
               inset: 0,
@@ -182,10 +182,10 @@ export function ConnectionBar(p: Props) {
           />
         </label>
         <div style={{ display: "flex", gap: "3px" }}>
-          <button onClick={() => p.onDensity("comfortable")} style={densityBtn(p.settings.density === "comfortable")}>
+          <button onClick={() => props.onDensity("comfortable")} style={densityBtn(props.settings.density === "comfortable")}>
             Cozy
           </button>
-          <button onClick={() => p.onDensity("compact")} style={densityBtn(p.settings.density === "compact")}>
+          <button onClick={() => props.onDensity("compact")} style={densityBtn(props.settings.density === "compact")}>
             Compact
           </button>
         </div>

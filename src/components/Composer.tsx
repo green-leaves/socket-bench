@@ -6,16 +6,16 @@ import { MONO, seg } from "../styles";
 interface Props {
   state: AppState;
   setField: (
-    k: keyof AppState,
-  ) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+    field: keyof AppState,
+  ) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   setHeader: (
     field: "stompConnectHeaders" | "stompSendHeaders",
-    i: number,
-    key: "k" | "v",
-  ) => (e: React.ChangeEvent<HTMLInputElement>) => void;
+    index: number,
+    column: "key" | "value",
+  ) => (event: React.ChangeEvent<HTMLInputElement>) => void;
   addHeader: (field: "stompConnectHeaders" | "stompSendHeaders") => () => void;
-  removeHeader: (field: "stompConnectHeaders" | "stompSendHeaders", i: number) => () => void;
-  onProtoModel: (m: RsModel) => void;
+  removeHeader: (field: "stompConnectHeaders" | "stompSendHeaders", index: number) => () => void;
+  onProtoModel: (model: RsModel) => void;
   wsSend: () => void;
   stompSubscribe: () => void;
   stompSend: () => void;
@@ -76,11 +76,11 @@ const softBtn: CSSProperties = {
   cursor: "pointer",
 };
 
-const RS_MODELS: { k: RsModel; l: string }[] = [
-  { k: "rr", l: "Req · Response" },
-  { k: "stream", l: "Req · Stream" },
-  { k: "channel", l: "Channel" },
-  { k: "fnf", l: "Fire & Forget" },
+const RS_MODELS: { value: RsModel; label: string }[] = [
+  { value: "rr", label: "Req · Response" },
+  { value: "stream", label: "Req · Stream" },
+  { value: "channel", label: "Channel" },
+  { value: "fnf", label: "Fire & Forget" },
 ];
 const RS_LABELS: Record<RsModel, string> = {
   rr: "Request",
@@ -89,13 +89,13 @@ const RS_LABELS: Record<RsModel, string> = {
   fnf: "Fire",
 };
 
-export function Composer({ state: S, ...p }: Props) {
+export function Composer({ state, ...props }: Props) {
   return (
     <div
       data-screen-label="Composer"
       style={{
         flex: "none",
-        width: S.splitW + "px",
+        width: state.splitW + "px",
         overflowY: "auto",
         overflowX: "hidden",
         background: "#0a0c10",
@@ -110,7 +110,7 @@ export function Composer({ state: S, ...p }: Props) {
           gap: "15px",
         }}
       >
-        {S.protocol === "ws" && (
+        {state.protocol === "ws" && (
           <>
             <div>
               <label style={labelStyle}>
@@ -120,8 +120,8 @@ export function Composer({ state: S, ...p }: Props) {
                 </span>
               </label>
               <input
-                value={S.wsProtocols}
-                onChange={p.setField("wsProtocols")}
+                value={state.wsProtocols}
+                onChange={props.setField("wsProtocols")}
                 placeholder="e.g. graphql-ws"
                 spellCheck={false}
                 className="sb-input"
@@ -133,13 +133,13 @@ export function Composer({ state: S, ...p }: Props) {
                 <label style={{ font: "600 10px 'IBM Plex Sans'", letterSpacing: ".1em", textTransform: "uppercase", color: "#59616f" }}>
                   Message payload
                 </label>
-                <button onClick={p.wsSend} className="sb-brighten" style={accentBtn}>
+                <button onClick={props.wsSend} className="sb-brighten" style={accentBtn}>
                   Send ↵
                 </button>
               </div>
               <textarea
-                value={S.wsPayload}
-                onChange={p.setField("wsPayload")}
+                value={state.wsPayload}
+                onChange={props.setField("wsPayload")}
                 spellCheck={false}
                 className="sb-input"
                 style={{ ...textareaStyle, minHeight: "150px" }}
@@ -148,7 +148,7 @@ export function Composer({ state: S, ...p }: Props) {
           </>
         )}
 
-        {S.protocol === "stomp" && (
+        {state.protocol === "stomp" && (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
             <div style={{ background: "#0b0e13", border: "1px solid #1c232f", borderRadius: "10px", padding: "13px 14px" }}>
               <div style={{ font: "700 11px 'IBM Plex Sans'", color: "#8a93a4", letterSpacing: ".06em", marginBottom: "10px" }}>
@@ -157,14 +157,14 @@ export function Composer({ state: S, ...p }: Props) {
               <label style={labelStyle}>Destination</label>
               <div style={{ display: "flex", gap: "8px" }}>
                 <input
-                  value={S.stompSubDest}
-                  onChange={p.setField("stompSubDest")}
+                  value={state.stompSubDest}
+                  onChange={props.setField("stompSubDest")}
                   placeholder="/topic/messages"
                   spellCheck={false}
                   className="sb-input"
                   style={{ ...fieldStyle, flex: 1, minWidth: 0 }}
                 />
-                <button onClick={p.stompSubscribe} className="sb-soft-btn" style={{ ...softBtn, flex: "none" }}>
+                <button onClick={props.stompSubscribe} className="sb-soft-btn" style={{ ...softBtn, flex: "none" }}>
                   Subscribe
                 </button>
               </div>
@@ -175,24 +175,24 @@ export function Composer({ state: S, ...p }: Props) {
                     (applied on Connect)
                   </span>
                 </label>
-                {S.stompConnectHeaders.map((r, i) => (
-                  <div key={i} style={{ display: "flex", gap: "6px", marginBottom: "5px" }}>
+                {state.stompConnectHeaders.map((row, index) => (
+                  <div key={index} style={{ display: "flex", gap: "6px", marginBottom: "5px" }}>
                     <input
-                      value={r.k}
-                      onChange={p.setHeader("stompConnectHeaders", i, "k")}
+                      value={row.key}
+                      onChange={props.setHeader("stompConnectHeaders", index, "key")}
                       placeholder="login"
                       spellCheck={false}
                       style={{ ...fieldStyle, flex: 1, minWidth: 0, borderRadius: "6px", padding: "6px 9px", color: "#c4ccd8", font: "12px " + MONO }}
                     />
                     <input
-                      value={r.v}
-                      onChange={p.setHeader("stompConnectHeaders", i, "v")}
+                      value={row.value}
+                      onChange={props.setHeader("stompConnectHeaders", index, "value")}
                       placeholder="value"
                       spellCheck={false}
                       style={{ ...fieldStyle, flex: 1, minWidth: 0, borderRadius: "6px", padding: "6px 9px", color: "#c4ccd8", font: "12px " + MONO }}
                     />
                     <button
-                      onClick={p.removeHeader("stompConnectHeaders", i)}
+                      onClick={props.removeHeader("stompConnectHeaders", index)}
                       className="sb-danger"
                       style={{ flex: "none", width: "28px", background: "transparent", border: "1px solid #1e2632", borderRadius: "6px", color: "#59616f", cursor: "pointer", fontSize: "14px" }}
                     >
@@ -201,7 +201,7 @@ export function Composer({ state: S, ...p }: Props) {
                   </div>
                 ))}
                 <button
-                  onClick={p.addHeader("stompConnectHeaders")}
+                  onClick={props.addHeader("stompConnectHeaders")}
                   className="sb-add"
                   style={{ background: "transparent", border: "none", color: "#59616f", font: "600 11px 'IBM Plex Sans'", cursor: "pointer", padding: "2px 0" }}
                 >
@@ -213,14 +213,14 @@ export function Composer({ state: S, ...p }: Props) {
             <div style={{ background: "#0b0e13", border: "1px solid #1c232f", borderRadius: "10px", padding: "13px 14px", display: "flex", flexDirection: "column" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
                 <div style={{ font: "700 11px 'IBM Plex Sans'", color: "#8a93a4", letterSpacing: ".06em" }}>SEND</div>
-                <button onClick={p.stompSend} className="sb-brighten" style={{ ...accentBtn, padding: "7px 16px", fontSize: "12px" }}>
+                <button onClick={props.stompSend} className="sb-brighten" style={{ ...accentBtn, padding: "7px 16px", fontSize: "12px" }}>
                   Send
                 </button>
               </div>
               <label style={labelStyle}>Destination</label>
               <input
-                value={S.stompSendDest}
-                onChange={p.setField("stompSendDest")}
+                value={state.stompSendDest}
+                onChange={props.setField("stompSendDest")}
                 placeholder="/app/hello"
                 spellCheck={false}
                 className="sb-input"
@@ -228,8 +228,8 @@ export function Composer({ state: S, ...p }: Props) {
               />
               <label style={labelStyle}>Body</label>
               <textarea
-                value={S.stompBody}
-                onChange={p.setField("stompBody")}
+                value={state.stompBody}
+                onChange={props.setField("stompBody")}
                 spellCheck={false}
                 className="sb-input"
                 style={{ ...textareaStyle, flex: 1, minHeight: "96px" }}
@@ -238,12 +238,12 @@ export function Composer({ state: S, ...p }: Props) {
           </div>
         )}
 
-        {S.protocol === "rsocket" && (
+        {state.protocol === "rsocket" && (
           <>
             <div style={{ display: "flex", gap: "3px", background: "#0c0f15", border: "1px solid #1c232f", borderRadius: "9px", padding: "3px", flexWrap: "wrap" }}>
-              {RS_MODELS.map((m) => (
-                <button key={m.k} onClick={() => p.onProtoModel(m.k)} style={seg(S.rsModel === m.k)}>
-                  {m.l}
+              {RS_MODELS.map((option) => (
+                <button key={option.value} onClick={() => props.onProtoModel(option.value)} style={seg(state.rsModel === option.value)}>
+                  {option.label}
                 </button>
               ))}
             </div>
@@ -256,8 +256,8 @@ export function Composer({ state: S, ...p }: Props) {
                   </span>
                 </label>
                 <input
-                  value={S.rsRoute}
-                  onChange={p.setField("rsRoute")}
+                  value={state.rsRoute}
+                  onChange={props.setField("rsRoute")}
                   placeholder="greeting"
                   spellCheck={false}
                   className="sb-input"
@@ -267,8 +267,8 @@ export function Composer({ state: S, ...p }: Props) {
               <div>
                 <label style={labelStyle}>Initial requestN</label>
                 <input
-                  value={S.rsInitialN}
-                  onChange={p.setField("rsInitialN")}
+                  value={state.rsInitialN}
+                  onChange={props.setField("rsInitialN")}
                   spellCheck={false}
                   className="sb-input"
                   style={fieldStyle}
@@ -281,24 +281,24 @@ export function Composer({ state: S, ...p }: Props) {
                   Data payload
                 </label>
                 <div style={{ display: "flex", gap: "8px" }}>
-                  {S.rsModel === "channel" && (
+                  {state.rsModel === "channel" && (
                     <>
-                      <button onClick={p.rsChannelPush} className="sb-soft-btn2" style={{ ...softBtn, padding: "7px 13px" }}>
+                      <button onClick={props.rsChannelPush} className="sb-soft-btn2" style={{ ...softBtn, padding: "7px 13px" }}>
                         Push frame
                       </button>
-                      <button onClick={p.rsChannelComplete} className="sb-soft-btn2" style={{ ...softBtn, padding: "7px 13px", color: "#8a93a4" }}>
+                      <button onClick={props.rsChannelComplete} className="sb-soft-btn2" style={{ ...softBtn, padding: "7px 13px", color: "#8a93a4" }}>
                         Complete
                       </button>
                     </>
                   )}
-                  <button onClick={p.rsRequest} className="sb-brighten" style={accentBtn}>
-                    {RS_LABELS[S.rsModel]}
+                  <button onClick={props.rsRequest} className="sb-brighten" style={accentBtn}>
+                    {RS_LABELS[state.rsModel]}
                   </button>
                 </div>
               </div>
               <textarea
-                value={S.rsData}
-                onChange={p.setField("rsData")}
+                value={state.rsData}
+                onChange={props.setField("rsData")}
                 spellCheck={false}
                 className="sb-input"
                 style={{ ...textareaStyle, minHeight: "120px" }}

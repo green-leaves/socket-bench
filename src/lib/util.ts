@@ -1,18 +1,18 @@
 import type { HeaderRow } from "../types";
 
 /** Last non-empty path segment of a "/"-delimited string. */
-export function leaf(str: string): string {
-  const parts = String(str || "")
+export function leaf(path: string): string {
+  const segments = String(path || "")
     .split("/")
     .filter(Boolean);
-  return parts.length ? parts[parts.length - 1] : "";
+  return segments.length ? segments[segments.length - 1] : "";
 }
 
 /** Collapse header rows into an object, dropping blank keys. */
 export function rowsToObj(rows: HeaderRow[]): Record<string, string> {
-  const o: Record<string, string> = {};
-  (rows || []).forEach((r) => {
-    if (r.k && r.k.trim()) o[r.k.trim()] = r.v;
+  const result: Record<string, string> = {};
+  (rows || []).forEach((row) => {
+    if (row.key && row.key.trim()) result[row.key.trim()] = row.value;
   });
-  return o;
+  return result;
 }

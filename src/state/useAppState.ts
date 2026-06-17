@@ -2,17 +2,17 @@ import { useCallback, useRef, useState } from "react";
 import { type AppState, loadInitialState } from "./appState";
 
 export function useAppState() {
-  const [s, setS] = useState<AppState>(loadInitialState);
+  const [state, setState] = useState<AppState>(loadInitialState);
 
   const patch = useCallback(
-    (p: Partial<AppState> | ((prev: AppState) => Partial<AppState>)) =>
-      setS((prev) => ({ ...prev, ...(typeof p === "function" ? p(prev) : p) })),
+    (update: Partial<AppState> | ((prev: AppState) => Partial<AppState>)) =>
+      setState((prev) => ({ ...prev, ...(typeof update === "function" ? update(prev) : update) })),
     [],
   );
 
   // live snapshot for socket-event closures + saveForm
-  const sRef = useRef(s);
-  sRef.current = s;
+  const stateRef = useRef(state);
+  stateRef.current = state;
 
-  return { s, setS, patch, sRef };
+  return { state, setState, patch, stateRef };
 }

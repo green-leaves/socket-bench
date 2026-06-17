@@ -11,71 +11,71 @@ import type { AddMsg } from "../hooks/useMessageLog";
 
 export interface ClientHandlers {
   onStatus: (status: Status, text: string) => void;
-  addMsg: (m: AddMsg) => void;
+  addMsg: (entry: AddMsg) => void;
   err: (msg: string) => void;
 }
 
-export function createClient(S: AppState, h: ClientHandlers): AnyClient {
-  if (S.protocol === "ws") {
+export function createClient(appState: AppState, handlers: ClientHandlers): AnyClient {
+  if (appState.protocol === "ws") {
     return new WSClient({
-      url: S.url,
-      protocols: S.wsProtocols,
+      url: appState.url,
+      protocols: appState.wsProtocols,
       onOpen: () => {
-        h.onStatus("open", "Connected");
-        h.addMsg({ dir: "sys", raw: "WebSocket open · " + S.url });
+        handlers.onStatus("open", "Connected");
+        handlers.addMsg({ dir: "sys", raw: "WebSocket open · " + appState.url });
       },
-      onMessage: (t, fmt) => h.addMsg({ dir: "in", raw: t, label: fmt }),
-      onClose: (c, r) => {
-        h.onStatus("closed", "Closed" + (c ? " (" + c + ")" : ""));
-        h.addMsg({ dir: "sys", raw: "Closed" + (r ? ": " + r : "") + " · code " + c });
+      onMessage: (text, format) => handlers.addMsg({ dir: "in", raw: text, label: format }),
+      onClose: (code, reason) => {
+        handlers.onStatus("closed", "Closed" + (code ? " (" + code + ")" : ""));
+        handlers.addMsg({ dir: "sys", raw: "Closed" + (reason ? ": " + reason : "") + " · code " + code });
       },
-      onError: (msg) => {
-        h.onStatus("error", "Error");
-        h.err(msg);
+      onError: (message) => {
+        handlers.onStatus("error", "Error");
+        handlers.err(message);
       },
     });
   }
-  if (S.protocol === "stomp") {
+  if (appState.protocol === "stomp") {
     return new StompClient({
-      url: S.url,
-      connectHeaders: rowsToObj(S.stompConnectHeaders),
-      onConnected: (hd) => {
-        h.onStatus("open", "STOMP connected");
-        h.addMsg({ dir: "sys", raw: "STOMP CONNECTED" + (hd.version ? " v" + hd.version : "") });
+      url: appState.url,
+      connectHeaders: rowsToObj(appState.stompConnectHeaders),
+      onConnected: (frameHeaders) => {
+        handlers.onStatus("open", "STOMP connected");
+        handlers.addMsg({ dir: "sys", raw: "STOMP CONNECTED" + (frameHeaders.version ? " v" + frameHeaders.version : "") });
       },
-      onMessage: (b, hd) =>
-        h.addMsg({ dir: "in", raw: b, label: hd.destination || hd.subscription || "" }),
-      onReceipt: (hd) => h.addMsg({ dir: "sys", raw: "RECEIPT " + (hd["receipt-id"] || "") }),
-      onStompError: (b, hd) => {
-        h.onStatus("error", "STOMP error");
-        h.err((hd.message || "ERROR") + (b ? "\n" + b : ""));
+      onMessage: (body, frameHeaders) =>
+        handlers.addMsg({ dir: "in", raw: body, label: frameHeaders.destination || frameHeaders.subscription || "" }),
+      onReceipt: (frameHeaders) => handlers.addMsg({ dir: "sys", raw: "RECEIPT " + (frameHeaders["receipt-id"] || "") }),
+      onStompError: (body, frameHeaders) => {
+        handlers.onStatus("error", "STOMP error");
+        handlers.err((frameHeaders.message || "ERROR") + (body ? "\n" + body : ""));
       },
-      onClose: (c) => {
-        h.onStatus("closed", "Closed");
-        h.addMsg({ dir: "sys", raw: "Closed · code " + c });
+      onClose: (code) => {
+        handlers.onStatus("closed", "Closed");
+        handlers.addMsg({ dir: "sys", raw: "Closed · code " + code });
       },
-      onError: (msg) => {
-        h.onStatus("error", "Error");
-        h.err(msg);
+      onError: (message) => {
+        handlers.onStatus("error", "Error");
+        handlers.err(message);
       },
     });
   }
   return new RSocketClient({
-    url: S.url,
+    url: appState.url,
     onConnected: () => {
-      h.onStatus("open", "RSocket ready");
-      h.addMsg({
+      handlers.onStatus("open", "RSocket ready");
+      handlers.addMsg({
         dir: "sys",
         raw: "RSocket connected · SETUP sent (composite-metadata / application/json)",
       });
     },
-    onClose: (c) => {
-      h.onStatus("closed", "Closed");
-      h.addMsg({ dir: "sys", raw: "Closed · code " + c });
+    onClose: (code) => {
+      handlers.onStatus("closed", "Closed");
+      handlers.addMsg({ dir: "sys", raw: "Closed · code " + code });
     },
-    onError: (msg) => {
-      h.onStatus("error", "Error");
-      h.err(msg);
+    onError: (message) => {
+      handlers.onStatus("error", "Error");
+      handlers.err(message);
     },
   });
 }

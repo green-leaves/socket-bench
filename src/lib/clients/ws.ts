@@ -18,26 +18,26 @@ export class WSClient {
   }
 
   connect(): void {
-    const o = this.opts;
-    const protos = (o.protocols || "")
+    const opts = this.opts;
+    const protocolList = (opts.protocols || "")
       .split(",")
-      .map((s) => s.trim())
+      .map((entry) => entry.trim())
       .filter(Boolean);
-    const ws = protos.length ? new WebSocket(o.url, protos) : new WebSocket(o.url);
+    const ws = protocolList.length ? new WebSocket(opts.url, protocolList) : new WebSocket(opts.url);
     this.ws = ws;
-    ws.onopen = () => o.onOpen && o.onOpen();
-    ws.onmessage = (ev: MessageEvent) => {
-      if (ev.data instanceof Blob) {
-        ev.data.text().then((t) => o.onMessage && o.onMessage(t, "text"));
-      } else if (ev.data instanceof ArrayBuffer) {
-        o.onMessage && o.onMessage(dec.decode(new Uint8Array(ev.data)), "binary");
+    ws.onopen = () => opts.onOpen && opts.onOpen();
+    ws.onmessage = (event: MessageEvent) => {
+      if (event.data instanceof Blob) {
+        event.data.text().then((text) => opts.onMessage && opts.onMessage(text, "text"));
+      } else if (event.data instanceof ArrayBuffer) {
+        opts.onMessage && opts.onMessage(dec.decode(new Uint8Array(event.data)), "binary");
       } else {
-        o.onMessage && o.onMessage(ev.data, "text");
+        opts.onMessage && opts.onMessage(event.data, "text");
       }
     };
-    ws.onclose = (ev: CloseEvent) => o.onClose && o.onClose(ev.code, ev.reason);
+    ws.onclose = (event: CloseEvent) => opts.onClose && opts.onClose(event.code, event.reason);
     ws.onerror = () =>
-      o.onError && o.onError("WebSocket error (check URL / CORS / mixed-content)");
+      opts.onError && opts.onError("WebSocket error (check URL / CORS / mixed-content)");
   }
 
   send(data: string): number {

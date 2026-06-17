@@ -14,17 +14,17 @@ import type { AppState } from "../state/appState";
 import type { Subscription } from "../types";
 
 interface Deps {
-  patch: (p: Partial<AppState> | ((prev: AppState) => Partial<AppState>)) => void;
-  setS: Dispatch<SetStateAction<AppState>>;
-  sRef: MutableRefObject<AppState>;
-  addMsg: (m: AddMsg) => void;
-  err: (msg: string) => void;
+  patch: (update: Partial<AppState> | ((prev: AppState) => Partial<AppState>)) => void;
+  setState: Dispatch<SetStateAction<AppState>>;
+  stateRef: MutableRefObject<AppState>;
+  addMsg: (entry: AddMsg) => void;
+  err: (message: string) => void;
   pushHistory: (action: string) => void;
   saveForm: () => void;
 }
 
 export function useSocketConnection(deps: Deps) {
-  const { patch, setS, sRef, addMsg, err, pushHistory, saveForm } = deps;
+  const { patch, setState, stateRef, addMsg, err, pushHistory, saveForm } = deps;
   const clientRef = useRef<AnyClient | null>(null);
   const sendTimesRef = useRef<Record<number, number>>({});
   const activeChannelRef = useRef<number | null>(null);
@@ -36,17 +36,17 @@ export function useSocketConnection(deps: Deps) {
 
   const removeSub = useCallback(
     (key: string | number) =>
-      setS((prev) => ({
+      setState((prev) => ({
         ...prev,
-        subscriptions: prev.subscriptions.filter((x) => x.key !== key),
+        subscriptions: prev.subscriptions.filter((sub) => sub.key !== key),
       })),
-    [setS],
+    [setState],
   );
 
   const addSubscription = useCallback(
     (sub: Subscription) =>
-      setS((prev) => ({ ...prev, subscriptions: prev.subscriptions.concat([sub]) })),
-    [setS],
+      setState((prev) => ({ ...prev, subscriptions: prev.subscriptions.concat([sub]) })),
+    [setState],
   );
 
   const disconnect = useCallback(
@@ -69,8 +69,8 @@ export function useSocketConnection(deps: Deps) {
   );
 
   const connect = useCallback(() => {
-    const S = sRef.current;
-    if (!S.url.trim()) {
+    const snapshot = stateRef.current;
+    if (!snapshot.url.trim()) {
       err("Enter an endpoint URL first.");
       return;
     }
@@ -78,18 +78,18 @@ export function useSocketConnection(deps: Deps) {
     patch({ status: "connecting", statusText: "Connecting…", latency: null, subscriptions: [] });
     pushHistory("connect");
     saveForm();
-    clientRef.current = createClient(S, {
+    clientRef.current = createClient(snapshot, {
       onStatus: (status, text) => patch({ status, statusText: text }),
       addMsg,
       err,
     });
     try {
       clientRef.current.connect();
-    } catch (e) {
+    } catch (error) {
       patch({ status: "error", statusText: "Error" });
-      err((e as Error).message);
+      err((error as Error).message);
     }
-  }, [addMsg, disconnect, err, patch, pushHistory, saveForm, sRef]);
+  }, [addMsg, disconnect, err, patch, pushHistory, saveForm, stateRef]);
 
   const wsSend = useCallback(() => {
     if (!ready()) {
@@ -97,113 +97,113 @@ export function useSocketConnection(deps: Deps) {
       return;
     }
     try {
-      const n = (clientRef.current as WSClient).send(sRef.current.wsPayload);
-      addMsg({ dir: "out", raw: sRef.current.wsPayload, size: n });
+      const byteCount = (clientRef.current as WSClient).send(stateRef.current.wsPayload);
+      addMsg({ dir: "out", raw: stateRef.current.wsPayload, size: byteCount });
       pushHistory("send");
-    } catch (e) {
-      err((e as Error).message);
+    } catch (error) {
+      err((error as Error).message);
     }
-  }, [addMsg, err, pushHistory, ready, sRef]);
+  }, [addMsg, err, pushHistory, ready, stateRef]);
 
   const stompSubscribe = useCallback(() => {
     if (!ready()) {
       err("Connect first (STOMP needs a CONNECTED frame).");
       return;
     }
-    const dest = sRef.current.stompSubDest.trim();
-    if (!dest) return;
-    const id = (clientRef.current as StompClient).subscribe(dest);
-    addSubscription({ key: id, kind: "stomp", label: dest });
-    addMsg({ dir: "out", raw: "SUBSCRIBE " + dest, label: dest });
-  }, [addMsg, addSubscription, err, ready, sRef]);
+    const destination = stateRef.current.stompSubDest.trim();
+    if (!destination) return;
+    const subscriptionId = (clientRef.current as StompClient).subscribe(destination);
+    addSubscription({ key: subscriptionId, kind: "stomp", label: destination });
+    addMsg({ dir: "out", raw: "SUBSCRIBE " + destination, label: destination });
+  }, [addMsg, addSubscription, err, ready, stateRef]);
 
   const stompSend = useCallback(() => {
     if (!ready()) {
       err("Connect first.");
       return;
     }
-    const cur = sRef.current;
-    const dest = cur.stompSendDest.trim();
-    const n = (clientRef.current as StompClient).send(
-      dest,
-      cur.stompBody,
-      rowsToObj(cur.stompSendHeaders),
+    const snapshot = stateRef.current;
+    const destination = snapshot.stompSendDest.trim();
+    const byteCount = (clientRef.current as StompClient).send(
+      destination,
+      snapshot.stompBody,
+      rowsToObj(snapshot.stompSendHeaders),
     );
-    addMsg({ dir: "out", raw: cur.stompBody, label: dest, size: n });
+    addMsg({ dir: "out", raw: snapshot.stompBody, label: destination, size: byteCount });
     pushHistory("send");
-  }, [addMsg, err, pushHistory, ready, sRef]);
+  }, [addMsg, err, pushHistory, ready, stateRef]);
 
   const rsRequest = useCallback(() => {
     if (!ready()) {
       err("Connect first (sends SETUP).");
       return;
     }
-    const S = sRef.current;
+    const snapshot = stateRef.current;
     const client = clientRef.current as RSocketClient;
-    const route = S.rsRoute.trim();
-    const data = S.rsData;
-    const initN = parseInt(S.rsInitialN, 10) || 2147483647;
-    if (S.rsModel === "rr") {
-      const r = client.requestResponse(route, data, {
-        onPayload: (d) => {
-          const t0 = sendTimesRef.current[r.streamId];
-          const lat = t0 != null ? Math.round(util.now() - t0) : null;
-          addMsg({ dir: "in", raw: d, label: route, latency: lat });
-          if (lat != null) patch({ latency: lat });
+    const route = snapshot.rsRoute.trim();
+    const data = snapshot.rsData;
+    const initialRequestN = parseInt(snapshot.rsInitialN, 10) || 2147483647;
+    if (snapshot.rsModel === "rr") {
+      const response = client.requestResponse(route, data, {
+        onPayload: (payload) => {
+          const sentAt = sendTimesRef.current[response.streamId];
+          const latency = sentAt != null ? Math.round(util.now() - sentAt) : null;
+          addMsg({ dir: "in", raw: payload, label: route, latency });
+          if (latency != null) patch({ latency });
         },
-        onError: (c, m) => err("RSocket error " + c + ": " + m),
+        onError: (code, message) => err("RSocket error " + code + ": " + message),
       });
-      sendTimesRef.current[r.streamId] = util.now();
-      addMsg({ dir: "out", raw: data, label: route + "  ·  request-response", size: r.bytes });
-    } else if (S.rsModel === "stream") {
-      const r2 = client.requestStream(route, data, initN, {
-        onPayload: (d) => addMsg({ dir: "in", raw: d, label: route }),
+      sendTimesRef.current[response.streamId] = util.now();
+      addMsg({ dir: "out", raw: data, label: route + "  ·  request-response", size: response.bytes });
+    } else if (snapshot.rsModel === "stream") {
+      const streamResult = client.requestStream(route, data, initialRequestN, {
+        onPayload: (payload) => addMsg({ dir: "in", raw: payload, label: route }),
         onComplete: () => {
-          removeSub(r2.streamId);
+          removeSub(streamResult.streamId);
           addMsg({ dir: "sys", raw: "Stream complete · " + route });
         },
-        onError: (c, m) => {
-          removeSub(r2.streamId);
-          err("RSocket error " + c + ": " + m);
+        onError: (code, message) => {
+          removeSub(streamResult.streamId);
+          err("RSocket error " + code + ": " + message);
         },
       });
-      addSubscription({ key: r2.streamId, kind: "rsocket", label: route + " · stream" });
-      addMsg({ dir: "out", raw: data, label: route + "  ·  request-stream", size: r2.bytes });
-    } else if (S.rsModel === "channel") {
-      const r3 = client.requestChannel(route, data, initN, {
-        onPayload: (d) => addMsg({ dir: "in", raw: d, label: route }),
+      addSubscription({ key: streamResult.streamId, kind: "rsocket", label: route + " · stream" });
+      addMsg({ dir: "out", raw: data, label: route + "  ·  request-stream", size: streamResult.bytes });
+    } else if (snapshot.rsModel === "channel") {
+      const channelResult = client.requestChannel(route, data, initialRequestN, {
+        onPayload: (payload) => addMsg({ dir: "in", raw: payload, label: route }),
         onComplete: () => {
-          removeSub(r3.streamId);
+          removeSub(channelResult.streamId);
           activeChannelRef.current = null;
           addMsg({ dir: "sys", raw: "Channel complete · " + route });
         },
-        onError: (c, m) => {
-          removeSub(r3.streamId);
-          err("RSocket error " + c + ": " + m);
+        onError: (code, message) => {
+          removeSub(channelResult.streamId);
+          err("RSocket error " + code + ": " + message);
         },
       });
-      activeChannelRef.current = r3.streamId;
-      addSubscription({ key: r3.streamId, kind: "rsocket", label: route + " · channel" });
-      addMsg({ dir: "out", raw: data, label: route + "  ·  request-channel (open)", size: r3.bytes });
+      activeChannelRef.current = channelResult.streamId;
+      addSubscription({ key: channelResult.streamId, kind: "rsocket", label: route + " · channel" });
+      addMsg({ dir: "out", raw: data, label: route + "  ·  request-channel (open)", size: channelResult.bytes });
     } else {
-      const r4 = client.fireAndForget(route, data);
-      addMsg({ dir: "out", raw: data, label: route + "  ·  fire-and-forget", size: r4.bytes });
+      const fireResult = client.fireAndForget(route, data);
+      addMsg({ dir: "out", raw: data, label: route + "  ·  fire-and-forget", size: fireResult.bytes });
     }
     pushHistory("send");
-  }, [addMsg, addSubscription, err, patch, pushHistory, ready, removeSub, sRef]);
+  }, [addMsg, addSubscription, err, patch, pushHistory, ready, removeSub, stateRef]);
 
   const rsChannelPush = useCallback(() => {
     if (activeChannelRef.current == null) {
       err("No open channel — send a request-channel first.");
       return;
     }
-    const n = (clientRef.current as RSocketClient).sendPayload(
+    const byteCount = (clientRef.current as RSocketClient).sendPayload(
       activeChannelRef.current,
-      sRef.current.rsData,
+      stateRef.current.rsData,
       false,
     );
-    addMsg({ dir: "out", raw: sRef.current.rsData, label: "channel push", size: n });
-  }, [addMsg, err, sRef]);
+    addMsg({ dir: "out", raw: stateRef.current.rsData, label: "channel push", size: byteCount });
+  }, [addMsg, err, stateRef]);
 
   const rsChannelComplete = useCallback(() => {
     if (activeChannelRef.current == null) return;
