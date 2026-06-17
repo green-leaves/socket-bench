@@ -1,18 +1,10 @@
 import { useCallback, useEffect, useRef, type CSSProperties } from "react";
-import {
-  WSClient,
-  StompClient,
-  RSocketClient,
-  util,
-  type AnyClient,
-} from "./lib/clients";
 import type {
   Collection,
-  Subscription,
 } from "./types";
 import { useMessageLog } from "./hooks/useMessageLog";
 import { useHistory } from "./hooks/useHistory";
-import { leaf, rowsToObj } from "./lib/util";
+import { leaf } from "./lib/util";
 import { KEYS, write } from "./lib/storage";
 import { FAM } from "./styles";
 import { Sidebar } from "./components/Sidebar";
@@ -21,16 +13,13 @@ import { Composer } from "./components/Composer";
 import { Results } from "./components/Results";
 import { useAppState } from "./state/useAppState";
 import { type AppState, FORM_KEYS } from "./state/appState";
+import { useSocketConnection } from "./hooks/useSocketConnection";
 
 export function App() {
   const { s, setS, patch, sRef } = useAppState();
   const { addMsg, err, clearMessages } = useMessageLog(setS);
   const { pushHistory, loadHistory, clearHistory } = useHistory(setS, sRef);
 
-  // mutable, render-independent instance values (the DCLogic instance fields)
-  const clientRef = useRef<AnyClient | null>(null);
-  const sendTimesRef = useRef<Record<number, number>>({});
-  const activeChannelRef = useRef<number | null>(null);
   const splitElRef = useRef<HTMLDivElement | null>(null);
   const draggingRef = useRef(false);
 
@@ -45,6 +34,10 @@ export function App() {
     FORM_KEYS.forEach((k) => (form[k] = cur[k]));
     write(KEYS.form, form);
   }, []);
+
+  const conn = useSocketConnection({
+    patch, setS, sRef, addMsg, err, pushHistory, saveForm,
+  });
 
   /* ---------------- drag + lifecycle ---------------- */
   useEffect(() => {
@@ -62,7 +55,7 @@ export function App() {
     window.addEventListener("beforeunload", saveForm);
     return () => {
       saveForm();
-      const c = clientRef.current;
+      const c = conn.clientRef.current;
       if (c)
         try {
           c.close();
@@ -84,17 +77,6 @@ export function App() {
   const fillSample = () =>
     patch({ protocol: "ws", url: "wss://ws.postman-echo.com/raw" });
 
-  const ready = () => !!clientRef.current && clientRef.current.ready();
-
-  const removeSub = useCallback(
-    (key: string | number) =>
-      setS((prev) => ({
-        ...prev,
-        subscriptions: prev.subscriptions.filter((x) => x.key !== key),
-      })),
-    [],
-  );
-
   /* ---------------- header editors ---------------- */
   const setHeader =
     (field: "stompConnectHeaders" | "stompSendHeaders", i: number, key: "k" | "v") =>
@@ -114,271 +96,6 @@ export function App() {
         const rows = prev[field].filter((_, j) => j !== i);
         return { ...prev, [field]: rows.length ? rows : [{ k: "", v: "" }] };
       });
-  /* ---------------- connect / disconnect ---------------- */
-  const disconnect = useCallback(
-    (silent?: boolean) => {
-      if (clientRef.current) {
-        try {
-          clientRef.current.close();
-        } catch {
-          /* ignore */
-        }
-        clientRef.current = null;
-      }
-      activeChannelRef.current = null;
-      if (silent !== true) {
-        patch({ status: "closed", statusText: "Disconnected", subscriptions: [] });
-        addMsg({ dir: "sys", raw: "Disconnected by user" });
-      }
-    },
-    [addMsg, patch],
-  );
-
-  const connect = useCallback(() => {
-    const S = sRef.current;
-    if (!S.url.trim()) {
-      err("Enter an endpoint URL first.");
-      return;
-    }
-    disconnect(true);
-    patch({ status: "connecting", statusText: "Connecting…", latency: null, subscriptions: [] });
-    pushHistory("connect");
-    saveForm();
-    const p = S.protocol;
-    if (p === "ws") {
-      const client = new WSClient({
-        url: S.url,
-        protocols: S.wsProtocols,
-        onOpen: () => {
-          patch({ status: "open", statusText: "Connected" });
-          addMsg({ dir: "sys", raw: "WebSocket open · " + S.url });
-        },
-        onMessage: (t, fmt) => addMsg({ dir: "in", raw: t, label: fmt }),
-        onClose: (c, r) => {
-          patch({ status: "closed", statusText: "Closed" + (c ? " (" + c + ")" : "") });
-          addMsg({ dir: "sys", raw: "Closed" + (r ? ": " + r : "") + " · code " + c });
-        },
-        onError: (msg) => {
-          patch({ status: "error", statusText: "Error" });
-          err(msg);
-        },
-      });
-      clientRef.current = client;
-    } else if (p === "stomp") {
-      const client = new StompClient({
-        url: S.url,
-        connectHeaders: rowsToObj(S.stompConnectHeaders),
-        onConnected: (h) => {
-          patch({ status: "open", statusText: "STOMP connected" });
-          addMsg({ dir: "sys", raw: "STOMP CONNECTED" + (h.version ? " v" + h.version : "") });
-        },
-        onMessage: (b, h) =>
-          addMsg({ dir: "in", raw: b, label: h.destination || h.subscription || "" }),
-        onReceipt: (h) => addMsg({ dir: "sys", raw: "RECEIPT " + (h["receipt-id"] || "") }),
-        onStompError: (b, h) => {
-          patch({ status: "error", statusText: "STOMP error" });
-          err((h.message || "ERROR") + (b ? "\n" + b : ""));
-        },
-        onClose: (c) => {
-          patch({ status: "closed", statusText: "Closed" });
-          addMsg({ dir: "sys", raw: "Closed · code " + c });
-        },
-        onError: (msg) => {
-          patch({ status: "error", statusText: "Error" });
-          err(msg);
-        },
-      });
-      clientRef.current = client;
-    } else {
-      const client = new RSocketClient({
-        url: S.url,
-        onConnected: () => {
-          patch({ status: "open", statusText: "RSocket ready" });
-          addMsg({
-            dir: "sys",
-            raw: "RSocket connected · SETUP sent (composite-metadata / application/json)",
-          });
-        },
-        onClose: (c) => {
-          patch({ status: "closed", statusText: "Closed" });
-          addMsg({ dir: "sys", raw: "Closed · code " + c });
-        },
-        onError: (msg) => {
-          patch({ status: "error", statusText: "Error" });
-          err(msg);
-        },
-      });
-      clientRef.current = client;
-    }
-    try {
-      clientRef.current!.connect();
-    } catch (e) {
-      patch({ status: "error", statusText: "Error" });
-      err((e as Error).message);
-    }
-  }, [addMsg, disconnect, err, patch, pushHistory, saveForm]);
-
-  /* ---------------- sending ---------------- */
-  const wsSend = () => {
-    if (!ready()) {
-      err("Not connected.");
-      return;
-    }
-    try {
-      const n = (clientRef.current as WSClient).send(sRef.current.wsPayload);
-      addMsg({ dir: "out", raw: sRef.current.wsPayload, size: n });
-      pushHistory("send");
-    } catch (e) {
-      err((e as Error).message);
-    }
-  };
-
-  const stompSubscribe = () => {
-    if (!ready()) {
-      err("Connect first (STOMP needs a CONNECTED frame).");
-      return;
-    }
-    const dest = sRef.current.stompSubDest.trim();
-    if (!dest) return;
-    const id = (clientRef.current as StompClient).subscribe(dest);
-    setS((prev) => ({
-      ...prev,
-      subscriptions: prev.subscriptions.concat([{ key: id, kind: "stomp", label: dest }]),
-    }));
-    addMsg({ dir: "out", raw: "SUBSCRIBE " + dest, label: dest });
-  };
-
-  const stompSend = () => {
-    if (!ready()) {
-      err("Connect first.");
-      return;
-    }
-    const cur = sRef.current;
-    const dest = cur.stompSendDest.trim();
-    const n = (clientRef.current as StompClient).send(
-      dest,
-      cur.stompBody,
-      rowsToObj(cur.stompSendHeaders),
-    );
-    addMsg({ dir: "out", raw: cur.stompBody, label: dest, size: n });
-    pushHistory("send");
-  };
-
-  const rsRequest = () => {
-    if (!ready()) {
-      err("Connect first (sends SETUP).");
-      return;
-    }
-    const S = sRef.current;
-    const client = clientRef.current as RSocketClient;
-    const route = S.rsRoute.trim();
-    const data = S.rsData;
-    const initN = parseInt(S.rsInitialN, 10) || 2147483647;
-    if (S.rsModel === "rr") {
-      const r = client.requestResponse(route, data, {
-        onPayload: (d) => {
-          const t0 = sendTimesRef.current[r.streamId];
-          const lat = t0 != null ? Math.round(util.now() - t0) : null;
-          addMsg({ dir: "in", raw: d, label: route, latency: lat });
-          if (lat != null) patch({ latency: lat });
-        },
-        onError: (c, m) => err("RSocket error " + c + ": " + m),
-      });
-      sendTimesRef.current[r.streamId] = util.now();
-      addMsg({ dir: "out", raw: data, label: route + "  ·  request-response", size: r.bytes });
-    } else if (S.rsModel === "stream") {
-      const r2 = client.requestStream(route, data, initN, {
-        onPayload: (d) => addMsg({ dir: "in", raw: d, label: route }),
-        onComplete: () => {
-          removeSub(r2.streamId);
-          addMsg({ dir: "sys", raw: "Stream complete · " + route });
-        },
-        onError: (c, m) => {
-          removeSub(r2.streamId);
-          err("RSocket error " + c + ": " + m);
-        },
-      });
-      setS((prev) => ({
-        ...prev,
-        subscriptions: prev.subscriptions.concat([
-          { key: r2.streamId, kind: "rsocket", label: route + " · stream" },
-        ]),
-      }));
-      addMsg({ dir: "out", raw: data, label: route + "  ·  request-stream", size: r2.bytes });
-    } else if (S.rsModel === "channel") {
-      const r3 = client.requestChannel(route, data, initN, {
-        onPayload: (d) => addMsg({ dir: "in", raw: d, label: route }),
-        onComplete: () => {
-          removeSub(r3.streamId);
-          activeChannelRef.current = null;
-          addMsg({ dir: "sys", raw: "Channel complete · " + route });
-        },
-        onError: (c, m) => {
-          removeSub(r3.streamId);
-          err("RSocket error " + c + ": " + m);
-        },
-      });
-      activeChannelRef.current = r3.streamId;
-      setS((prev) => ({
-        ...prev,
-        subscriptions: prev.subscriptions.concat([
-          { key: r3.streamId, kind: "rsocket", label: route + " · channel" },
-        ]),
-      }));
-      addMsg({
-        dir: "out",
-        raw: data,
-        label: route + "  ·  request-channel (open)",
-        size: r3.bytes,
-      });
-    } else {
-      const r4 = client.fireAndForget(route, data);
-      addMsg({ dir: "out", raw: data, label: route + "  ·  fire-and-forget", size: r4.bytes });
-    }
-    pushHistory("send");
-  };
-
-  const rsChannelPush = () => {
-    if (activeChannelRef.current == null) {
-      err("No open channel — send a request-channel first.");
-      return;
-    }
-    const n = (clientRef.current as RSocketClient).sendPayload(
-      activeChannelRef.current,
-      sRef.current.rsData,
-      false,
-    );
-    addMsg({ dir: "out", raw: sRef.current.rsData, label: "channel push", size: n });
-  };
-
-  const rsChannelComplete = () => {
-    if (activeChannelRef.current == null) return;
-    (clientRef.current as RSocketClient).sendPayload(activeChannelRef.current, "", true);
-    addMsg({ dir: "sys", raw: "Channel completed by client" });
-  };
-
-  const cancelSub = (sub: Subscription) => () => {
-    const client = clientRef.current;
-    if (client) {
-      if (sub.kind === "stomp") {
-        try {
-          (client as StompClient).unsubscribe(sub.key as string);
-        } catch {
-          /* ignore */
-        }
-      } else {
-        try {
-          (client as RSocketClient).cancel(sub.key as number);
-        } catch {
-          /* ignore */
-        }
-      }
-    }
-    if (sub.kind === "rsocket" && sub.key === activeChannelRef.current)
-      activeChannelRef.current = null;
-    removeSub(sub.key);
-    addMsg({ dir: "sys", raw: "Cancelled · " + sub.label });
-  };
 
   /* ---------------- collections / history ---------------- */
   const defaultName = () => {
@@ -482,7 +199,7 @@ export function App() {
           busy={busy}
           onProtocol={(p) => patch({ protocol: p })}
           onUrl={setField("url")}
-          onToggleConnect={connected || busy ? () => disconnect(false) : connect}
+          onToggleConnect={connected || busy ? () => conn.disconnect(false) : conn.connect}
           onAccent={(accent) => patch({ settings: { ...s.settings, accent } })}
           onDensity={(density) => patch({ settings: { ...s.settings, density } })}
         />
@@ -504,12 +221,12 @@ export function App() {
             addHeader={addHeader}
             removeHeader={removeHeader}
             onProtoModel={(m) => patch({ rsModel: m })}
-            wsSend={wsSend}
-            stompSubscribe={stompSubscribe}
-            stompSend={stompSend}
-            rsRequest={rsRequest}
-            rsChannelPush={rsChannelPush}
-            rsChannelComplete={rsChannelComplete}
+            wsSend={conn.wsSend}
+            stompSubscribe={conn.stompSubscribe}
+            stompSend={conn.stompSend}
+            rsRequest={conn.rsRequest}
+            rsChannelPush={conn.rsChannelPush}
+            rsChannelComplete={conn.rsChannelComplete}
           />
 
           <div
@@ -536,7 +253,7 @@ export function App() {
             onFilter={setField("filterText")}
             onFilterDir={(d) => patch({ filterDir: d })}
             onClear={clearMessages}
-            onCancelSub={cancelSub}
+            onCancelSub={conn.cancelSub}
             onFillSample={fillSample}
           />
         </div>
