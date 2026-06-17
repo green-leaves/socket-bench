@@ -1,12 +1,8 @@
 import type { CSSProperties } from "react";
-import type { Protocol, Direction, Status } from "./types";
+import type { Protocol, Direction, Status } from "../types";
+import { FAM, MONO, tokens } from "./tokens";
 
-export const FAM = "'IBM Plex Sans',system-ui,sans-serif";
-export const MONO = "'IBM Plex Mono',monospace";
-
-/** Segmented-control button — used by every tab group (protocol selector,
- *  result tabs, RSocket models). Selected = solid accent; unselected reverts
- *  to a neutral transparent/gray state. */
+/** Segmented-control button — selected = solid accent; unselected = neutral. */
 export function seg(active: boolean): CSSProperties {
   return {
     padding: "7px 13px",
@@ -17,8 +13,8 @@ export function seg(active: boolean): CSSProperties {
     cursor: "pointer",
     whiteSpace: "nowrap",
     border: "1px solid transparent",
-    background: active ? "var(--accent,#2dd4a7)" : "transparent",
-    color: active ? "#06120d" : "#8a93a4",
+    background: active ? tokens.accentVar : "transparent",
+    color: active ? tokens.onAccent : tokens.textDim,
     display: "inline-flex",
     alignItems: "center",
     gap: "6px",
@@ -34,9 +30,9 @@ export function pill(active: boolean): CSSProperties {
     fontSize: "11px",
     fontFamily: FAM,
     cursor: "pointer",
-    border: active ? "1px solid transparent" : "1px solid #2a3340",
-    background: active ? "var(--accent,#2dd4a7)" : "transparent",
-    color: active ? "#06120d" : "#8a93a4",
+    border: active ? "1px solid transparent" : "1px solid " + tokens.borderSoft,
+    background: active ? tokens.accentVar : "transparent",
+    color: active ? tokens.onAccent : tokens.textDim,
   };
 }
 
@@ -50,15 +46,16 @@ export function sideTab(active: boolean): CSSProperties {
     fontSize: "11.5px",
     fontFamily: FAM,
     cursor: "pointer",
-    border: "1px solid " + (active ? "#232c39" : "transparent"),
-    background: active ? "#11161e" : "transparent",
-    color: active ? "#dce1ea" : "#59616f",
+    border: "1px solid " + (active ? tokens.sideActiveBorder : "transparent"),
+    background: active ? tokens.sideActiveBg : "transparent",
+    color: active ? tokens.text : tokens.textFaint,
   };
 }
 
 export function protoColor(p: Protocol): string {
-  return p === "ws" ? "#58a6ff" : p === "stomp" ? "#a78bfa" : "#f5c451";
+  return p === "ws" ? tokens.blue : p === "stomp" ? tokens.purple : tokens.yellow;
 }
+
 export function badgeTint(p: Protocol): string {
   return p === "ws"
     ? "rgba(88,166,255,.16)"
@@ -66,6 +63,7 @@ export function badgeTint(p: Protocol): string {
       ? "rgba(167,139,250,.16)"
       : "rgba(245,196,81,.16)";
 }
+
 export function badge(p: Protocol): CSSProperties {
   return {
     flex: "none",
@@ -80,24 +78,15 @@ export function badge(p: Protocol): CSSProperties {
 }
 
 export const dirMeta: Record<Direction, { l: string; c: string }> = {
-  in: { l: "IN", c: "#58a6ff" },
-  out: { l: "OUT", c: "var(--accent,#2dd4a7)" },
-  sys: { l: "SYS", c: "#a78bfa" },
+  in: { l: "IN", c: tokens.blue },
+  out: { l: "OUT", c: tokens.accentVar },
+  sys: { l: "SYS", c: tokens.purple },
 };
 
 export const statusColors: Record<Status, string> = {
-  idle: "#59616f",
-  connecting: "#f5c451",
-  open: "var(--accent,#2dd4a7)",
-  closed: "#8a93a4",
-  error: "#ff7b72",
+  idle: tokens.textFaint,
+  connecting: tokens.yellow,
+  open: tokens.accentVar,
+  closed: tokens.textDim,
+  error: tokens.red,
 };
-
-export function fmtTime(ts: number): string {
-  const d = new Date(ts);
-  return (
-    d.toLocaleTimeString("en-GB", { hour12: false }) +
-    "." +
-    String(d.getMilliseconds()).padStart(3, "0")
-  );
-}
