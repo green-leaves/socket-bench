@@ -17,6 +17,8 @@ import type {
   Status,
   Subscription,
 } from "./types";
+import { leaf, rowsToObj } from "./lib/util";
+import { KEYS, read, write } from "./lib/storage";
 import { FAM } from "./styles";
 import { Sidebar } from "./components/Sidebar";
 import { ConnectionBar } from "./components/ConnectionBar";
@@ -97,27 +99,16 @@ const FORM_KEYS: (keyof AppState)[] = [
 
 function loadInitialState(): AppState {
   const s: AppState = { ...DEFAULT_STATE };
-  try {
-    const c = JSON.parse(localStorage.getItem("sktool.collections") || "null");
-    const h = JSON.parse(localStorage.getItem("sktool.history") || "null");
-    const f = JSON.parse(localStorage.getItem("sktool.form") || "null");
-    const set = JSON.parse(localStorage.getItem("sktool.settings") || "null");
-    if (Array.isArray(c)) s.collections = c;
-    if (Array.isArray(h)) s.history = h;
-    if (f && typeof f === "object") Object.assign(s, f);
-    if (set && typeof set === "object") s.settings = { ...s.settings, ...set };
-  } catch {
-    /* ignore */
-  }
+  const c = read<Collection[]>(KEYS.collections);
+  const h = read<HistoryItem[]>(KEYS.history);
+  const f = read<Partial<AppState>>(KEYS.form);
+  const set = read<Partial<Settings>>(KEYS.settings);
+  if (Array.isArray(c)) s.collections = c;
+  if (Array.isArray(h)) s.history = h;
+  if (f && typeof f === "object") Object.assign(s, f);
+  if (set && typeof set === "object") s.settings = { ...s.settings, ...set };
   return s;
 }
-
-const leaf = (str: string) => {
-  const parts = String(str || "")
-    .split("/")
-    .filter(Boolean);
-  return parts.length ? parts[parts.length - 1] : "";
-};
 
 export function App() {
   const [s, setS] = useState<AppState>(loadInitialState);
@@ -140,37 +131,15 @@ export function App() {
   sRef.current = s;
 
   /* ---------------- persistence ---------------- */
-  useEffect(() => {
-    try {
-      localStorage.setItem("sktool.collections", JSON.stringify(s.collections));
-    } catch {
-      /* ignore */
-    }
-  }, [s.collections]);
-  useEffect(() => {
-    try {
-      localStorage.setItem("sktool.history", JSON.stringify(s.history));
-    } catch {
-      /* ignore */
-    }
-  }, [s.history]);
-  useEffect(() => {
-    try {
-      localStorage.setItem("sktool.settings", JSON.stringify(s.settings));
-    } catch {
-      /* ignore */
-    }
-  }, [s.settings]);
+  useEffect(() => write(KEYS.collections, s.collections), [s.collections]);
+  useEffect(() => write(KEYS.history, s.history), [s.history]);
+  useEffect(() => write(KEYS.settings, s.settings), [s.settings]);
 
   const saveForm = useCallback(() => {
-    try {
-      const cur = sRef.current;
-      const form: Record<string, unknown> = {};
-      FORM_KEYS.forEach((k) => (form[k] = cur[k]));
-      localStorage.setItem("sktool.form", JSON.stringify(form));
-    } catch {
-      /* ignore */
-    }
+    const cur = sRef.current;
+    const form: Record<string, unknown> = {};
+    FORM_KEYS.forEach((k) => (form[k] = cur[k]));
+    write(KEYS.form, form);
   }, []);
 
   /* ---------------- drag + lifecycle ---------------- */
@@ -274,14 +243,6 @@ export function App() {
         const rows = prev[field].filter((_, j) => j !== i);
         return { ...prev, [field]: rows.length ? rows : [{ k: "", v: "" }] };
       });
-  const rowsToObj = (rows: HeaderRow[]): Record<string, string> => {
-    const o: Record<string, string> = {};
-    (rows || []).forEach((r) => {
-      if (r.k && r.k.trim()) o[r.k.trim()] = r.v;
-    });
-    return o;
-  };
-
   /* ---------------- connect / disconnect ---------------- */
   const disconnect = useCallback(
     (silent?: boolean) => {
