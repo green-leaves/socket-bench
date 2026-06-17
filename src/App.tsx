@@ -8,10 +8,10 @@ import {
 } from "./lib/clients";
 import type {
   Collection,
-  HistoryItem,
-  Message,
   Subscription,
 } from "./types";
+import { useMessageLog } from "./hooks/useMessageLog";
+import { useHistory } from "./hooks/useHistory";
 import { leaf, rowsToObj } from "./lib/util";
 import { KEYS, write } from "./lib/storage";
 import { FAM } from "./styles";
@@ -24,9 +24,10 @@ import { type AppState, FORM_KEYS } from "./state/appState";
 
 export function App() {
   const { s, setS, patch, sRef } = useAppState();
+  const { addMsg, err, clearMessages } = useMessageLog(setS);
+  const { pushHistory, loadHistory, clearHistory } = useHistory(setS, sRef);
 
   // mutable, render-independent instance values (the DCLogic instance fields)
-  const midRef = useRef(0);
   const clientRef = useRef<AnyClient | null>(null);
   const sendTimesRef = useRef<Record<number, number>>({});
   const activeChannelRef = useRef<number | null>(null);
@@ -80,39 +81,6 @@ export function App() {
   };
 
   /* ---------------- messages ---------------- */
-  const addMsg = useCallback(
-    (m: {
-      dir?: Message["dir"];
-      kind?: Message["kind"];
-      raw?: unknown;
-      label?: string;
-      size?: number;
-      latency?: number | null;
-    }) => {
-      const raw = m.raw == null ? "" : String(m.raw);
-      const parsed = util.tryParseJSON(raw);
-      const msg: Message = {
-        id: ++midRef.current,
-        dir: m.dir || "sys",
-        kind: m.kind || (m.dir === "in" || m.dir === "out" ? "msg" : "sys"),
-        ts: Date.now(),
-        label: m.label || "",
-        size: m.size != null ? m.size : util.byteLen(raw),
-        raw,
-        pretty: parsed ? JSON.stringify(parsed, null, 2) : raw,
-        isJson: !!parsed,
-        latency: m.latency,
-      };
-      setS((prev) => ({ ...prev, messages: [msg, ...prev.messages].slice(0, 1000) }));
-    },
-    [],
-  );
-
-  const err = useCallback(
-    (txt: string) => addMsg({ dir: "sys", kind: "err", raw: txt }),
-    [addMsg],
-  );
-  const clearMessages = () => patch({ messages: [] });
   const fillSample = () =>
     patch({ protocol: "ws", url: "wss://ws.postman-echo.com/raw" });
 
@@ -164,21 +132,6 @@ export function App() {
       }
     },
     [addMsg, patch],
-  );
-
-  const pushHistory = useCallback(
-    (action: string) => {
-      const cur = sRef.current;
-      const item: HistoryItem = {
-        id: "h" + Date.now() + Math.random().toString(36).slice(2, 5),
-        protocol: cur.protocol,
-        url: cur.url,
-        action,
-        ts: Date.now(),
-      };
-      setS((prev) => ({ ...prev, history: [item, ...prev.history].slice(0, 40) }));
-    },
-    [],
   );
 
   const connect = useCallback(() => {
@@ -475,10 +428,6 @@ export function App() {
       collections: prev.collections.filter((x) => x.id !== c.id),
     }));
   };
-  const loadHistory = (h: HistoryItem) => () =>
-    patch({ protocol: h.protocol, url: h.url });
-  const clearHistory = () => patch({ history: [] });
-
   /* ---------------- form field setter ---------------- */
   const setField =
     (k: keyof AppState) =>
