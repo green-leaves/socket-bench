@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import type { AppState } from "../App";
+import type { AppState } from "../state/appState";
 import type { FilterDir, Message, Subscription } from "../types";
 import { dirMeta, fmtTime, MONO, pill, seg } from "../styles";
 import { util } from "../lib/clients";

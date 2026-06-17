@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import type { AppState } from "../App";
+import type { AppState } from "../state/appState";
 import type { RsModel } from "../types";
 import { MONO, seg } from "../styles";
 

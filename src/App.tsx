@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, type CSSProperties } from "react";
 import {
   WSClient,
   StompClient,
@@ -8,115 +8,22 @@ import {
 } from "./lib/clients";
 import type {
   Collection,
-  HeaderRow,
   HistoryItem,
   Message,
-  Protocol,
-  RsModel,
-  Settings,
-  Status,
   Subscription,
 } from "./types";
 import { leaf, rowsToObj } from "./lib/util";
-import { KEYS, read, write } from "./lib/storage";
+import { KEYS, write } from "./lib/storage";
 import { FAM } from "./styles";
 import { Sidebar } from "./components/Sidebar";
 import { ConnectionBar } from "./components/ConnectionBar";
 import { Composer } from "./components/Composer";
 import { Results } from "./components/Results";
-
-export interface AppState {
-  protocol: Protocol;
-  url: string;
-  status: Status;
-  statusText: string;
-  latency: number | null;
-  messages: Message[];
-  subscriptions: Subscription[];
-  collections: Collection[];
-  history: HistoryItem[];
-  resultTab: "messages" | "raw" | "metrics";
-  sidebarTab: "collections" | "history";
-  filterText: string;
-  filterDir: "all" | "in" | "out" | "sys";
-  splitW: number;
-  wsPayload: string;
-  wsProtocols: string;
-  stompSubDest: string;
-  stompSendDest: string;
-  stompBody: string;
-  stompConnectHeaders: HeaderRow[];
-  stompSendHeaders: HeaderRow[];
-  rsModel: RsModel;
-  rsRoute: string;
-  rsData: string;
-  rsInitialN: string;
-  settings: Settings;
-}
-
-const DEFAULT_STATE: AppState = {
-  protocol: "ws",
-  url: "",
-  status: "idle",
-  statusText: "Not connected",
-  latency: null,
-  messages: [],
-  subscriptions: [],
-  collections: [],
-  history: [],
-  resultTab: "messages",
-  sidebarTab: "collections",
-  filterText: "",
-  filterDir: "all",
-  splitW: 480,
-  wsPayload: '{\n  "hello": "world"\n}',
-  wsProtocols: "",
-  stompSubDest: "/topic/messages",
-  stompSendDest: "/app/hello",
-  stompBody: '{\n  "name": "QA"\n}',
-  stompConnectHeaders: [{ k: "", v: "" }],
-  stompSendHeaders: [{ k: "", v: "" }],
-  rsModel: "rr",
-  rsRoute: "greeting",
-  rsData: '{\n  "name": "QA"\n}',
-  rsInitialN: "2147483647",
-  settings: { accent: "#d4662b", density: "comfortable" },
-};
-
-const FORM_KEYS: (keyof AppState)[] = [
-  "protocol",
-  "url",
-  "wsPayload",
-  "wsProtocols",
-  "stompSubDest",
-  "stompSendDest",
-  "stompBody",
-  "rsModel",
-  "rsRoute",
-  "rsData",
-  "rsInitialN",
-];
-
-function loadInitialState(): AppState {
-  const s: AppState = { ...DEFAULT_STATE };
-  const c = read<Collection[]>(KEYS.collections);
-  const h = read<HistoryItem[]>(KEYS.history);
-  const f = read<Partial<AppState>>(KEYS.form);
-  const set = read<Partial<Settings>>(KEYS.settings);
-  if (Array.isArray(c)) s.collections = c;
-  if (Array.isArray(h)) s.history = h;
-  if (f && typeof f === "object") Object.assign(s, f);
-  if (set && typeof set === "object") s.settings = { ...s.settings, ...set };
-  return s;
-}
+import { useAppState } from "./state/useAppState";
+import { type AppState, FORM_KEYS } from "./state/appState";
 
 export function App() {
-  const [s, setS] = useState<AppState>(loadInitialState);
-  const patch = useCallback(
-    (p: Partial<AppState> | ((prev: AppState) => Partial<AppState>)) =>
-      setS((prev) => ({ ...prev, ...(typeof p === "function" ? p(prev) : p) })),
-    [],
-  );
+  const { s, setS, patch, sRef } = useAppState();
 
   // mutable, render-independent instance values (the DCLogic instance fields)
   const midRef = useRef(0);
@@ -125,10 +32,6 @@ export function App() {
   const activeChannelRef = useRef<number | null>(null);
   const splitElRef = useRef<HTMLDivElement | null>(null);
   const draggingRef = useRef(false);
-
-  // live snapshot of state for socket-event closures + saveForm
-  const sRef = useRef(s);
-  sRef.current = s;
 
   /* ---------------- persistence ---------------- */
   useEffect(() => write(KEYS.collections, s.collections), [s.collections]);
