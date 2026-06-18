@@ -2,12 +2,14 @@ import type { CSSProperties } from "react";
 import type { AppState } from "../state/appState";
 import type { RsModel } from "../types";
 import { MONO, seg } from "../styles";
+import { JsonEditor } from "./JsonEditor";
 
 interface Props {
   state: AppState;
   setField: (
     field: keyof AppState,
   ) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  setFieldValue: (field: keyof AppState) => (value: string) => void;
   setHeader: (
     field: "stompConnectHeaders" | "stompSendHeaders",
     index: number,
@@ -41,18 +43,6 @@ const fieldStyle: CSSProperties = {
   padding: "8px 11px",
   color: "#dce1ea",
   font: "13px " + MONO,
-  outline: "none",
-};
-
-const textareaStyle: CSSProperties = {
-  width: "100%",
-  resize: "vertical",
-  background: "#0c0f15",
-  border: "1px solid #1c232f",
-  borderRadius: "8px",
-  padding: "12px 13px",
-  color: "#cdd6e0",
-  font: "12.5px/1.5 " + MONO,
   outline: "none",
 };
 
@@ -108,6 +98,8 @@ export function Composer({ state, ...props }: Props) {
           display: "flex",
           flexDirection: "column",
           gap: "15px",
+          minHeight: "100%",
+          boxSizing: "border-box",
         }}
       >
         {state.protocol === "ws" && (
@@ -128,7 +120,7 @@ export function Composer({ state, ...props }: Props) {
                 style={{ ...fieldStyle, maxWidth: "360px" }}
               />
             </div>
-            <div>
+            <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
                 <label style={{ font: "600 10px 'IBM Plex Sans'", letterSpacing: ".1em", textTransform: "uppercase", color: "#59616f" }}>
                   Message payload
@@ -137,19 +129,15 @@ export function Composer({ state, ...props }: Props) {
                   Send ↵
                 </button>
               </div>
-              <textarea
-                value={state.wsPayload}
-                onChange={props.setField("wsPayload")}
-                spellCheck={false}
-                className="sb-input"
-                style={{ ...textareaStyle, minHeight: "150px" }}
-              />
+              <div style={{ flex: 1, minHeight: 0, border: "1px solid #1c232f", borderRadius: "8px", overflow: "hidden" }}>
+                <JsonEditor value={state.wsPayload} onChange={props.setFieldValue("wsPayload")} fillHeight />
+              </div>
             </div>
           </>
         )}
 
         {state.protocol === "stomp" && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+          <div style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
             <div style={{ background: "#0b0e13", border: "1px solid #1c232f", borderRadius: "10px", padding: "13px 14px" }}>
               <div style={{ font: "700 11px 'IBM Plex Sans'", color: "#8a93a4", letterSpacing: ".06em", marginBottom: "10px" }}>
                 SUBSCRIBE
@@ -227,13 +215,9 @@ export function Composer({ state, ...props }: Props) {
                 style={{ ...fieldStyle, marginBottom: "10px" }}
               />
               <label style={labelStyle}>Body</label>
-              <textarea
-                value={state.stompBody}
-                onChange={props.setField("stompBody")}
-                spellCheck={false}
-                className="sb-input"
-                style={{ ...textareaStyle, flex: 1, minHeight: "96px" }}
-              />
+              <div style={{ flex: 1, minHeight: 0, border: "1px solid #1c232f", borderRadius: "8px", overflow: "hidden" }}>
+                <JsonEditor value={state.stompBody} onChange={props.setFieldValue("stompBody")} fillHeight />
+              </div>
             </div>
           </div>
         )}
@@ -275,7 +259,7 @@ export function Composer({ state, ...props }: Props) {
                 />
               </div>
             </div>
-            <div>
+            <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px", gap: "8px", flexWrap: "wrap" }}>
                 <label style={{ font: "600 10px 'IBM Plex Sans'", letterSpacing: ".1em", textTransform: "uppercase", color: "#59616f" }}>
                   Data payload
@@ -296,13 +280,9 @@ export function Composer({ state, ...props }: Props) {
                   </button>
                 </div>
               </div>
-              <textarea
-                value={state.rsData}
-                onChange={props.setField("rsData")}
-                spellCheck={false}
-                className="sb-input"
-                style={{ ...textareaStyle, minHeight: "120px" }}
-              />
+              <div style={{ flex: 1, minHeight: 0, border: "1px solid #1c232f", borderRadius: "8px", overflow: "hidden" }}>
+                <JsonEditor value={state.rsData} onChange={props.setFieldValue("rsData")} fillHeight />
+              </div>
               <div style={{ marginTop: "8px", font: "11.5px 'IBM Plex Sans'", color: "#5a6270", lineHeight: 1.5 }}>
                 ⚗ Experimental — sends SETUP with composite-metadata /{" "}
                 <span style={{ fontFamily: MONO }}>application/json</span> over the WebSocket

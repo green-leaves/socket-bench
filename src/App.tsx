@@ -47,6 +47,11 @@ export function App() {
     (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       patch({ [field]: event.target.value } as Partial<AppState>);
 
+  const setFieldValue =
+    (field: keyof AppState) =>
+    (value: string) =>
+      patch({ [field]: value } as Partial<AppState>);
+
   const fillSample = () => patch({ protocol: "ws", url: "wss://ws.postman-echo.com/raw" });
   const connected = state.status === "open";
   const busy = state.status === "connecting";
@@ -91,6 +96,7 @@ export function App() {
           <Composer
             state={state}
             setField={setField}
+            setFieldValue={setFieldValue}
             setHeader={setHeader}
             addHeader={addHeader}
             removeHeader={removeHeader}
