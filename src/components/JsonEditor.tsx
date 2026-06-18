@@ -35,7 +35,7 @@ interface JsonEditorProps {
   onChange: (value: string) => void;
   /** When true the editor fills its flex parent (height 100%, internal scroll). */
   fillHeight?: boolean;
-  /** Fixed min height used when not fillHeight (e.g. "120px"). */
+  /** Fixed min height used when not fillHeight (e.g. "120px"). Ignored when fillHeight is true. */
   minHeight?: string;
 }
 
