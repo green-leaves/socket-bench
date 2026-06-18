@@ -35,6 +35,7 @@ export function createClient(appState: AppState, handlers: ClientHandlers): AnyC
       },
     });
   }
+
   if (appState.protocol === "stomp") {
     return new StompClient({
       url: appState.url,
@@ -60,6 +61,7 @@ export function createClient(appState: AppState, handlers: ClientHandlers): AnyC
       },
     });
   }
+
   return new RSocketClient({
     url: appState.url,
     onConnected: () => {

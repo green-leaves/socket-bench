@@ -34,6 +34,7 @@ export function App() {
   });
   const { setHeader, addHeader, removeHeader } = useHeaderRows(setState);
   const { splitElRef, onDragStart } = useSplitPane(patch);
+
   usePersistence({
     collections: state.collections,
     history: state.history,

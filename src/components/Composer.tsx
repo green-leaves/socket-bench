@@ -67,11 +67,12 @@ const softBtn: CSSProperties = {
 };
 
 const RS_MODELS: { value: RsModel; label: string }[] = [
-  { value: "rr", label: "Req · Response" },
   { value: "stream", label: "Req · Stream" },
+  { value: "rr", label: "Req · Response" },
   { value: "channel", label: "Channel" },
   { value: "fnf", label: "Fire & Forget" },
 ];
+
 const RS_LABELS: Record<RsModel, string> = {
   rr: "Request",
   stream: "Request stream",

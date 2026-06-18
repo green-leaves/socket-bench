@@ -62,7 +62,7 @@ export const DEFAULT_STATE: AppState = {
   stompBody: '{\n  "name": "QA"\n}',
   stompConnectHeaders: [{ key: "", value: "" }],
   stompSendHeaders: [{ key: "", value: "" }],
-  rsModel: "rr",
+  rsModel: "stream",
   rsRoute: "greeting",
   rsData: '{\n  "name": "QA"\n}',
   rsInitialN: "2147483647",

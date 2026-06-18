@@ -1,7 +1,7 @@
 export type Protocol = "ws" | "stomp" | "rsocket";
 export type Direction = "in" | "out" | "sys";
 export type MsgKind = "msg" | "sys" | "err";
-export type RsModel = "rr" | "stream" | "channel" | "fnf";
+export type RsModel = "stream" | "rr" | "channel" | "fnf";
 export type ResultTab = "messages" | "raw" | "metrics";
 export type SidebarTab = "collections" | "history";
 export type FilterDir = "all" | "in" | "out" | "sys";
