@@ -9,7 +9,7 @@ import type {
   Status,
   Subscription,
 } from "../types";
-import { KEYS, read } from "../lib/storage";
+import { KEYS, readAll } from "../lib/storage";
 
 export interface AppState {
   protocol: Protocol;
@@ -85,14 +85,15 @@ export const FORM_KEYS: (keyof AppState)[] = [
 
 export function loadInitialState(): AppState {
   const state: AppState = { ...DEFAULT_STATE };
-  const savedCollections = read<Collection[]>(KEYS.collections);
-  const savedHistory = read<HistoryItem[]>(KEYS.history);
-  const savedForm = read<Partial<AppState>>(KEYS.form);
-  const savedSettings = read<Partial<Settings>>(KEYS.settings);
-  if (Array.isArray(savedCollections)) state.collections = savedCollections;
-  if (Array.isArray(savedHistory)) state.history = savedHistory;
-  if (savedForm && typeof savedForm === "object") Object.assign(state, savedForm);
-  if (savedSettings && typeof savedSettings === "object")
-    state.settings = { ...state.settings, ...savedSettings };
+  // All-or-nothing: a single corrupt key falls back to pure defaults (matches
+  // the original loading semantics — one outer try/catch over all four reads).
+  const stored = readAll(KEYS);
+  if (!stored) return state;
+  const { collections, history, form, settings } = stored;
+  if (Array.isArray(collections)) state.collections = collections as Collection[];
+  if (Array.isArray(history)) state.history = history as HistoryItem[];
+  if (form && typeof form === "object") Object.assign(state, form as Partial<AppState>);
+  if (settings && typeof settings === "object")
+    state.settings = { ...state.settings, ...(settings as Partial<Settings>) };
   return state;
 }

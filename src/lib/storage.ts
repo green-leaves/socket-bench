@@ -6,9 +6,20 @@ export const KEYS = {
   settings: "sktool.settings",
 } as const;
 
-export function read<T>(key: string): T | null {
+/**
+ * Read and parse several namespaced keys atomically: if ANY value is corrupt
+ * JSON, returns null so the caller falls back to a single clean default state
+ * (rather than partially applying some keys). Missing keys parse to null.
+ */
+export function readAll<T extends Record<string, string>>(
+  keys: T,
+): Record<keyof T, unknown> | null {
   try {
-    return JSON.parse(localStorage.getItem(key) || "null") as T | null;
+    const result = {} as Record<keyof T, unknown>;
+    (Object.keys(keys) as (keyof T)[]).forEach((name) => {
+      result[name] = JSON.parse(localStorage.getItem(keys[name]) || "null");
+    });
+    return result;
   } catch {
     return null;
   }
