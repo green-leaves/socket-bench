@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { memo, type CSSProperties } from "react";
 import type { AppState } from "../state/appState";
 import type { FilterDir, Message, Subscription } from "../types";
 import { dirMeta, fmtTime, MONO, pill, seg } from "../styles";
@@ -27,7 +27,7 @@ const FILTER_DIRS: { value: FilterDir; label: string }[] = [
   { value: "sys", label: "Sys" },
 ];
 
-function MessageCard({ message }: { message: Message }) {
+const MessageCard = memo(function MessageCard({ message }: { message: Message }) {
   const dirStyle = dirMeta[message.dir] || dirMeta.sys;
   const accentColor = message.kind === "err" ? "#ff7b72" : dirStyle.color;
   const bg =
@@ -92,9 +92,9 @@ function MessageCard({ message }: { message: Message }) {
       {message.isJson ? <JsonView pretty={message.pretty} /> : <PlainView text={message.raw} />}
     </div>
   );
-}
+});
 
-function Metrics({ messages }: { messages: Message[] }) {
+const Metrics = memo(function Metrics({ messages }: { messages: Message[] }) {
   let inboundCount = 0,
     outboundCount = 0,
     errorCount = 0,
@@ -201,7 +201,7 @@ function Metrics({ messages }: { messages: Message[] }) {
       </div>
     </div>
   );
-}
+});
 
 export function Results({ state, ...props }: Props) {
   const filterQuery = (state.filterText || "").toLowerCase();
