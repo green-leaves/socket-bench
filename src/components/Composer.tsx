@@ -139,7 +139,7 @@ export function Composer({ endpoint, splitW, ...props }: Props) {
         )}
 
         {endpoint.protocol === "stomp" && (
-          <div style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+          <div style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1.4fr)", gap: "16px" }}>
             <div style={{ background: "#0b0e13", border: "1px solid #1c232f", borderRadius: "10px", padding: "13px 14px" }}>
               <div style={{ font: "700 11px 'IBM Plex Sans'", color: "#8a93a4", letterSpacing: ".06em", marginBottom: "10px" }}>
                 SUBSCRIBE
@@ -201,21 +201,23 @@ export function Composer({ endpoint, splitW, ...props }: Props) {
             </div>
 
             <div style={{ background: "#0b0e13", border: "1px solid #1c232f", borderRadius: "10px", padding: "13px 14px", display: "flex", flexDirection: "column" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
-                <div style={{ font: "700 11px 'IBM Plex Sans'", color: "#8a93a4", letterSpacing: ".06em" }}>SEND</div>
-                <button onClick={props.stompSend} className="sb-brighten" style={{ ...accentBtn, padding: "7px 16px", fontSize: "12px" }}>
+              <div style={{ font: "700 11px 'IBM Plex Sans'", color: "#8a93a4", letterSpacing: ".06em", marginBottom: "10px" }}>
+                SEND
+              </div>
+              <label style={labelStyle}>Destination</label>
+              <div style={{ display: "flex", gap: "8px", marginBottom: "13px" }}>
+                <input
+                  value={endpoint.stompSendDest}
+                  onChange={props.setField("stompSendDest")}
+                  placeholder="/app/hello"
+                  spellCheck={false}
+                  className="sb-input"
+                  style={{ ...fieldStyle, flex: 1, minWidth: 0 }}
+                />
+                <button onClick={props.stompSend} className="sb-brighten" style={{ ...accentBtn, flex: "none" }}>
                   Send
                 </button>
               </div>
-              <label style={labelStyle}>Destination</label>
-              <input
-                value={endpoint.stompSendDest}
-                onChange={props.setField("stompSendDest")}
-                placeholder="/app/hello"
-                spellCheck={false}
-                className="sb-input"
-                style={{ ...fieldStyle, marginBottom: "10px" }}
-              />
               <label style={labelStyle}>Body</label>
               <div style={{ flex: 1, minHeight: 0, border: "1px solid #1c232f", borderRadius: "8px", overflow: "hidden" }}>
                 <JsonEditor value={endpoint.stompBody} onChange={props.setFieldValue("stompBody")} fillHeight />
