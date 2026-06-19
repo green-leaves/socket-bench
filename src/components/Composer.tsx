@@ -84,7 +84,6 @@ export function Composer({ endpoint, splitW, ...props }: Props) {
         overflowY: "auto",
         overflowX: "hidden",
         background: "#0a0c10",
-        borderRight: "1px solid #1c232f",
       }}
     >
       <div
