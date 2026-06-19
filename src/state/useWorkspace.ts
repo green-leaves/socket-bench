@@ -25,7 +25,7 @@ export function loadWorkspaceState(): WorkspaceState {
   const base: WorkspaceState = {
     endpoints: [],
     activeEndpointId: null,
-    splitW: 480,
+    splitW: 620,
     settings: { ...DEFAULT_SETTINGS },
   };
   const stored = readAll(KEYS);
