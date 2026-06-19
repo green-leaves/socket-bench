@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { type Endpoint, endpointDisplayName } from "../state/endpoint";
 import { badge, statusColors, MONO } from "../styles";
+import { ImportButton } from "./ImportButton";
 
 interface Props {
   endpoints: Endpoint[];
@@ -9,7 +10,21 @@ interface Props {
   onCreate: () => void;
   onRename: (id: string, name: string) => void;
   onDelete: (id: string) => void;
+  onExportWorkspace: () => void;
+  onExportEndpoint: (id: string) => void;
+  onImport: (file: File) => void;
 }
+
+const softBtn = (disabled: boolean): CSSProperties => ({
+  flex: 1,
+  background: "transparent",
+  border: "1px solid #2a3340",
+  borderRadius: "8px",
+  padding: "7px",
+  color: disabled ? "#3f4754" : "#8a93a4",
+  font: "600 11px 'IBM Plex Sans'",
+  cursor: disabled ? "default" : "pointer",
+});
 
 /** Per-endpoint connection indicator: color by status, pulse when streaming/connecting. */
 function StatusDot({ endpoint }: { endpoint: Endpoint }) {
@@ -37,12 +52,14 @@ function Row({
   onSelect,
   onRename,
   onDelete,
+  onExport,
 }: {
   endpoint: Endpoint;
   active: boolean;
   onSelect: (id: string) => void;
   onRename: (id: string, name: string) => void;
   onDelete: (id: string) => void;
+  onExport: (id: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
@@ -133,9 +150,28 @@ function Row({
       <span
         onClick={(e) => {
           e.stopPropagation();
+          onExport(endpoint.id);
+        }}
+        className="sb-act"
+        title="Export this endpoint to a file"
+        style={{
+          flex: "none",
+          color: "#4a525f",
+          fontSize: "13px",
+          lineHeight: 1,
+          padding: "2px 4px",
+          borderRadius: "4px",
+        }}
+      >
+        ⤓
+      </span>
+      <span
+        onClick={(e) => {
+          e.stopPropagation();
           onDelete(endpoint.id);
         }}
         className="sb-del"
+        title="Delete this endpoint"
         style={{
           flex: "none",
           color: "#4a525f",
@@ -190,6 +226,25 @@ export function EndpointList(props: Props) {
       </div>
 
       <div style={{ padding: "10px 12px 4px" }}>
+        <div style={{ display: "flex", gap: "6px", marginBottom: "6px" }}>
+          <button
+            onClick={props.onExportWorkspace}
+            disabled={!props.endpoints.length}
+            className="sb-soft-btn"
+            title="Export all endpoints + settings to a file"
+            style={softBtn(!props.endpoints.length)}
+          >
+            ⤓ Export
+          </button>
+          <ImportButton
+            onImport={props.onImport}
+            className="sb-soft-btn"
+            title="Import endpoints from a file (added, never overwrites)"
+            style={softBtn(false)}
+          >
+            ⤒ Import
+          </ImportButton>
+        </div>
         <button
           onClick={props.onCreate}
           className="sb-hover-border"
@@ -217,6 +272,7 @@ export function EndpointList(props: Props) {
             onSelect={props.onSelect}
             onRename={props.onRename}
             onDelete={props.onDelete}
+            onExport={props.onExportEndpoint}
           />
         ))}
       </div>

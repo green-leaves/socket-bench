@@ -3,23 +3,11 @@ import { KEYS, readAll } from "../lib/storage";
 import {
   type Endpoint,
   type WorkspaceState,
-  DEFAULT_ENDPOINT,
   DEFAULT_SETTINGS,
-  ENDPOINT_CONFIG_KEYS,
   endpointFromCollection,
+  rehydrate,
 } from "./endpoint";
 import type { Collection, Settings } from "../types";
-
-/** Rehydrate a stored config object into a full Endpoint (fresh runtime). */
-function rehydrate(config: Partial<Endpoint>): Endpoint {
-  const endpoint = DEFAULT_ENDPOINT(typeof config.id === "string" ? config.id : undefined);
-  const source = config as Record<string, unknown>;
-  const target = endpoint as unknown as Record<string, unknown>;
-  ENDPOINT_CONFIG_KEYS.forEach((key) => {
-    if (source[key] !== undefined) target[key] = source[key];
-  });
-  return endpoint;
-}
 
 export function loadWorkspaceState(): WorkspaceState {
   const base: WorkspaceState = {

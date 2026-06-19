@@ -3,6 +3,14 @@ import type { Endpoint } from "../state/endpoint";
 import type { RsModel } from "../types";
 import { MONO, seg } from "../styles";
 import { JsonEditor } from "./JsonEditor";
+import { BeautifyButton } from "./BeautifyButton";
+
+const payloadLabelStyle: CSSProperties = {
+  font: "600 10px 'IBM Plex Sans'",
+  letterSpacing: ".1em",
+  textTransform: "uppercase",
+  color: "#59616f",
+};
 
 interface Props {
   endpoint: Endpoint;
@@ -116,12 +124,13 @@ export function Composer({ endpoint, splitW, ...props }: Props) {
             </div>
             <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
-                <label style={{ font: "600 10px 'IBM Plex Sans'", letterSpacing: ".1em", textTransform: "uppercase", color: "#59616f" }}>
-                  Message payload
-                </label>
-                <button onClick={props.wsSend} className="sb-brighten" style={accentBtn}>
-                  Send ↵
-                </button>
+                <label style={payloadLabelStyle}>Message payload</label>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <BeautifyButton value={endpoint.wsPayload} onChange={props.setFieldValue("wsPayload")} />
+                  <button onClick={props.wsSend} className="sb-brighten" style={accentBtn}>
+                    Send ↵
+                  </button>
+                </div>
               </div>
               <div style={{ flex: 1, minHeight: 0, border: "1px solid #1c232f", borderRadius: "8px", overflow: "hidden" }}>
                 <JsonEditor value={endpoint.wsPayload} onChange={props.setFieldValue("wsPayload")} fillHeight />
@@ -210,7 +219,10 @@ export function Composer({ endpoint, splitW, ...props }: Props) {
                   Send
                 </button>
               </div>
-              <label style={labelStyle}>Body</label>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
+                <label style={payloadLabelStyle}>Body</label>
+                <BeautifyButton value={endpoint.stompBody} onChange={props.setFieldValue("stompBody")} />
+              </div>
               <div style={{ flex: 1, minHeight: 0, border: "1px solid #1c232f", borderRadius: "8px", overflow: "hidden" }}>
                 <JsonEditor value={endpoint.stompBody} onChange={props.setFieldValue("stompBody")} fillHeight />
               </div>
@@ -250,10 +262,9 @@ export function Composer({ endpoint, splitW, ...props }: Props) {
             </div>
             <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px", gap: "8px", flexWrap: "wrap" }}>
-                <label style={{ font: "600 10px 'IBM Plex Sans'", letterSpacing: ".1em", textTransform: "uppercase", color: "#59616f" }}>
-                  Data payload
-                </label>
-                <div style={{ display: "flex", gap: "8px" }}>
+                <label style={payloadLabelStyle}>Data payload</label>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <BeautifyButton value={endpoint.rsData} onChange={props.setFieldValue("rsData")} />
                   {endpoint.rsModel === "channel" && (
                     <>
                       <button onClick={props.rsChannelPush} className="sb-soft-btn2" style={{ ...softBtn, padding: "7px 13px" }}>

@@ -72,6 +72,20 @@ textarea::placeholder {
   color: #ff7b72 !important;
   background: rgba(255, 123, 114, 0.1);
 }
+.sb-act {
+  cursor: pointer;
+}
+.sb-act:hover {
+  color: var(--accent, #2dd4a7) !important;
+  background: rgba(255, 255, 255, 0.06);
+}
+.sb-fmt-btn {
+  opacity: 0.65;
+  transition: opacity 0.12s ease;
+}
+.sb-fmt-btn:hover {
+  opacity: 1;
+}
 .sb-danger:hover {
   color: #ff7b72 !important;
   border-color: rgba(255, 123, 114, 0.3) !important;

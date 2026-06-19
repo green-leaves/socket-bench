@@ -108,6 +108,25 @@ export function DEFAULT_ENDPOINT(id: string = newEndpointId()): Endpoint {
   };
 }
 
+/** Rehydrate a stored/imported config object into a full Endpoint (fresh runtime). */
+export function rehydrate(config: Partial<Endpoint>): Endpoint {
+  const endpoint = DEFAULT_ENDPOINT(typeof config.id === "string" ? config.id : undefined);
+  const source = config as Record<string, unknown>;
+  const target = endpoint as unknown as Record<string, unknown>;
+  ENDPOINT_CONFIG_KEYS.forEach((key) => {
+    if (source[key] !== undefined) target[key] = source[key];
+  });
+  return endpoint;
+}
+
+/** Strip an Endpoint down to its persisted config fields (drops all runtime state). */
+export function toEndpointConfig(endpoint: Endpoint): Record<string, unknown> {
+  const config: Record<string, unknown> = {};
+  const source = endpoint as unknown as Record<string, unknown>;
+  ENDPOINT_CONFIG_KEYS.forEach((key) => (config[key] = source[key]));
+  return config;
+}
+
 /** One-time migration: legacy saved Collection -> Endpoint. */
 export function endpointFromCollection(collection: Collection): Endpoint {
   const endpoint = DEFAULT_ENDPOINT();

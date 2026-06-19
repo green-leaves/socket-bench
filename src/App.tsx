@@ -8,10 +8,12 @@ import { useWorkspace } from "./state/useWorkspace";
 import {
   type Endpoint,
   DEFAULT_ENDPOINT,
-  ENDPOINT_CONFIG_KEYS,
   endpointDisplayName,
+  toEndpointConfig,
 } from "./state/endpoint";
 import { KEYS, write } from "./lib/storage";
+import { downloadJson, readJsonFile } from "./lib/download";
+import { serializeWorkspace, serializeEndpoint, parseImport, slug, dateStamp } from "./lib/transfer";
 import { useConnections } from "./hooks/useConnections";
 import { useSplitPane } from "./hooks/useSplitPane";
 import { usePersistence } from "./hooks/usePersistence";
@@ -23,13 +25,7 @@ export function App() {
 
   const saveEndpoints = useCallback(() => {
     const snapshot = stateRef.current;
-    const configs = snapshot.endpoints.map((endpoint) => {
-      const config: Record<string, unknown> = {};
-      const source = endpoint as unknown as Record<string, unknown>;
-      ENDPOINT_CONFIG_KEYS.forEach((key) => (config[key] = source[key]));
-      return config;
-    });
-    write(KEYS.endpoints, configs);
+    write(KEYS.endpoints, snapshot.endpoints.map(toEndpointConfig));
     write(KEYS.activeEndpoint, snapshot.activeEndpointId);
   }, [stateRef]);
 
@@ -70,6 +66,55 @@ export function App() {
     });
     saveEndpoints();
   };
+
+  /* ---------------- file export / import ---------------- */
+  const exportWorkspace = useCallback(() => {
+    const snapshot = stateRef.current;
+    downloadJson(
+      `socketbench-workspace-${dateStamp()}.json`,
+      serializeWorkspace(snapshot.endpoints, snapshot.settings),
+    );
+  }, [stateRef]);
+
+  const exportEndpoint = useCallback(
+    (id: string) => {
+      const endpoint = stateRef.current.endpoints.find((e) => e.id === id);
+      if (!endpoint) return;
+      downloadJson(
+        `socketbench-${slug(endpointDisplayName(endpoint))}-${dateStamp()}.json`,
+        serializeEndpoint(endpoint),
+      );
+    },
+    [stateRef],
+  );
+
+  const importFromFile = useCallback(
+    (file: File) => {
+      readJsonFile(file)
+        .then((data) => {
+          const imported = parseImport(data);
+          if (!imported.length) {
+            window.alert("That file contains no endpoints.");
+            return;
+          }
+          // Compute from the current ref so we can persist the merged result
+          // directly — stateRef.current only updates after the next render.
+          const endpoints = stateRef.current.endpoints.concat(imported);
+          const activeEndpointId = imported[0].id;
+          setState((prev) => ({
+            ...prev,
+            endpoints: prev.endpoints.concat(imported),
+            activeEndpointId,
+          }));
+          write(KEYS.endpoints, endpoints.map(toEndpointConfig));
+          write(KEYS.activeEndpoint, activeEndpointId);
+        })
+        .catch((error) =>
+          window.alert(error instanceof Error ? error.message : "Could not import that file."),
+        );
+    },
+    [stateRef, setState],
+  );
 
   /* ---------------- active-endpoint field setters ---------------- */
   const setField =
@@ -117,6 +162,9 @@ export function App() {
         onCreate={createEndpoint}
         onRename={renameEndpoint}
         onDelete={deleteEndpoint}
+        onExportWorkspace={exportWorkspace}
+        onExportEndpoint={exportEndpoint}
+        onImport={importFromFile}
       />
 
       {active ? (
@@ -178,7 +226,7 @@ export function App() {
           </div>
         </main>
       ) : (
-        <EmptyState onCreate={createEndpoint} />
+        <EmptyState onCreate={createEndpoint} onImport={importFromFile} />
       )}
     </div>
   );
