@@ -74,13 +74,6 @@ const RS_MODELS: { value: RsModel; label: string }[] = [
   { value: "fnf", label: "Fire & Forget" },
 ];
 
-const RS_LABELS: Record<RsModel, string> = {
-  rr: "Request",
-  stream: "Request stream",
-  channel: "Open channel",
-  fnf: "Fire",
-};
-
 export function Composer({ endpoint, splitW, ...props }: Props) {
   return (
     <div
@@ -235,32 +228,25 @@ export function Composer({ endpoint, splitW, ...props }: Props) {
                 </button>
               ))}
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 160px", gap: "14px" }}>
-              <div>
-                <label style={labelStyle}>
-                  Route{" "}
-                  <span style={{ textTransform: "none", letterSpacing: 0, color: "#3f4754", fontWeight: 400 }}>
-                    (routing metadata)
-                  </span>
-                </label>
+            <div>
+              <label style={labelStyle}>
+                Route{" "}
+                <span style={{ textTransform: "none", letterSpacing: 0, color: "#3f4754", fontWeight: 400 }}>
+                  (routing metadata)
+                </span>
+              </label>
+              <div style={{ display: "flex", gap: "8px" }}>
                 <input
                   value={endpoint.rsRoute}
                   onChange={props.setField("rsRoute")}
                   placeholder="greeting"
                   spellCheck={false}
                   className="sb-input"
-                  style={fieldStyle}
+                  style={{ ...fieldStyle, flex: 1, minWidth: 0 }}
                 />
-              </div>
-              <div>
-                <label style={labelStyle}>Initial requestN</label>
-                <input
-                  value={endpoint.rsInitialN}
-                  onChange={props.setField("rsInitialN")}
-                  spellCheck={false}
-                  className="sb-input"
-                  style={fieldStyle}
-                />
+                <button onClick={props.rsRequest} className="sb-brighten" style={{ ...accentBtn, flex: "none" }}>
+                  Send
+                </button>
               </div>
             </div>
             <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
@@ -279,9 +265,6 @@ export function Composer({ endpoint, splitW, ...props }: Props) {
                       </button>
                     </>
                   )}
-                  <button onClick={props.rsRequest} className="sb-brighten" style={accentBtn}>
-                    {RS_LABELS[endpoint.rsModel]}
-                  </button>
                 </div>
               </div>
               <div style={{ flex: 1, minHeight: 0, border: "1px solid #1c232f", borderRadius: "8px", overflow: "hidden" }}>
