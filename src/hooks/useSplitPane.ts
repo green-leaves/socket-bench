@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
-import type { AppState } from "../state/appState";
+import type { WorkspaceState } from "../state/endpoint";
 
-export function useSplitPane(
-  patch: (update: Partial<AppState> | ((prev: AppState) => Partial<AppState>)) => void,
-) {
+export function useSplitPane(patch: (update: Partial<WorkspaceState>) => void) {
   const splitElRef = useRef<HTMLDivElement | null>(null);
   const draggingRef = useRef(false);
 

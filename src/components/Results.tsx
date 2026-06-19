@@ -1,12 +1,12 @@
 import { memo, type CSSProperties } from "react";
-import type { AppState } from "../state/appState";
+import type { Endpoint } from "../state/endpoint";
 import type { FilterDir, Message, Subscription } from "../types";
 import { dirMeta, fmtTime, MONO, pill, seg } from "../styles";
 import { util } from "../lib/clients";
 import { JsonView, PlainView } from "./JsonView";
 
 interface Props {
-  state: AppState;
+  endpoint: Endpoint;
   onTab: (tab: "messages" | "raw" | "metrics") => void;
   onFilter: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onFilterDir: (direction: FilterDir) => void;
@@ -203,18 +203,18 @@ const Metrics = memo(function Metrics({ messages }: { messages: Message[] }) {
   );
 });
 
-export function Results({ state, ...props }: Props) {
-  const filterQuery = (state.filterText || "").toLowerCase();
-  const filtered = state.messages.filter(
+export function Results({ endpoint, ...props }: Props) {
+  const filterQuery = (endpoint.filterText || "").toLowerCase();
+  const filtered = endpoint.messages.filter(
     (message) =>
-      (state.filterDir === "all" || message.dir === state.filterDir) &&
+      (endpoint.filterDir === "all" || message.dir === endpoint.filterDir) &&
       (!filterQuery ||
         message.raw.toLowerCase().indexOf(filterQuery) > -1 ||
         (message.label || "").toLowerCase().indexOf(filterQuery) > -1),
   );
 
   const rawDump =
-    state.messages
+    endpoint.messages
       .slice()
       .reverse()
       .map((message) => {
@@ -254,17 +254,17 @@ export function Results({ state, ...props }: Props) {
       >
         <div style={{ display: "flex", gap: "3px", background: "#0c0f15", border: "1px solid #1c232f", borderRadius: "9px", padding: "3px" }}>
           {RESULT_TABS.map((option) => (
-            <button key={option.value} onClick={() => props.onTab(option.value)} style={seg(state.resultTab === option.value)}>
+            <button key={option.value} onClick={() => props.onTab(option.value)} style={seg(endpoint.resultTab === option.value)}>
               {option.label}
             </button>
           ))}
         </div>
         <span style={{ font: "11.5px " + MONO, color: "#59616f" }}>
-          {filtered.length}/{state.messages.length}
+          {filtered.length}/{endpoint.messages.length}
         </span>
         <div style={{ flex: 1 }} />
         <input
-          value={state.filterText}
+          value={endpoint.filterText}
           onChange={props.onFilter}
           placeholder="filter…"
           spellCheck={false}
@@ -273,7 +273,7 @@ export function Results({ state, ...props }: Props) {
         />
         <div style={{ display: "flex", gap: "4px" }}>
           {FILTER_DIRS.map((option) => (
-            <button key={option.value} onClick={() => props.onFilterDir(option.value)} style={pill(state.filterDir === option.value)}>
+            <button key={option.value} onClick={() => props.onFilterDir(option.value)} style={pill(endpoint.filterDir === option.value)}>
               {option.label}
             </button>
           ))}
@@ -287,7 +287,7 @@ export function Results({ state, ...props }: Props) {
         </button>
       </div>
 
-      {state.subscriptions.length > 0 && (
+      {endpoint.subscriptions.length > 0 && (
         <div
           style={{
             flex: "none",
@@ -303,7 +303,7 @@ export function Results({ state, ...props }: Props) {
           <span style={{ font: "700 9.5px " + MONO, letterSpacing: ".12em", color: "#59616f" }}>
             ACTIVE
           </span>
-          {state.subscriptions.map((sub) => (
+          {endpoint.subscriptions.map((sub) => (
             <div
               key={String(sub.key)}
               style={{
@@ -339,8 +339,8 @@ export function Results({ state, ...props }: Props) {
       )}
 
       <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
-        {state.resultTab === "messages" &&
-          (state.messages.length === 0 ? (
+        {endpoint.resultTab === "messages" &&
+          (endpoint.messages.length === 0 ? (
             <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: "30px" }}>
               <div style={{ maxWidth: "440px", textAlign: "center" }}>
                 <div style={{ font: "700 14px " + MONO, color: "#8a93a4", marginBottom: "14px" }}>
@@ -368,7 +368,7 @@ export function Results({ state, ...props }: Props) {
             </div>
           ))}
 
-        {state.resultTab === "raw" && (
+        {endpoint.resultTab === "raw" && (
           <pre
             style={{
               margin: 0,
@@ -383,7 +383,7 @@ export function Results({ state, ...props }: Props) {
           </pre>
         )}
 
-        {state.resultTab === "metrics" && <Metrics messages={state.messages} />}
+        {endpoint.resultTab === "metrics" && <Metrics messages={endpoint.messages} />}
       </div>
     </div>
   );

@@ -1,15 +1,16 @@
 import type { CSSProperties } from "react";
-import type { AppState } from "../state/appState";
+import type { Endpoint } from "../state/endpoint";
 import type { RsModel } from "../types";
 import { MONO, seg } from "../styles";
 import { JsonEditor } from "./JsonEditor";
 
 interface Props {
-  state: AppState;
+  endpoint: Endpoint;
+  splitW: number;
   setField: (
-    field: keyof AppState,
+    field: keyof Endpoint,
   ) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
-  setFieldValue: (field: keyof AppState) => (value: string) => void;
+  setFieldValue: (field: keyof Endpoint) => (value: string) => void;
   setHeader: (
     field: "stompConnectHeaders" | "stompSendHeaders",
     index: number,
@@ -80,13 +81,13 @@ const RS_LABELS: Record<RsModel, string> = {
   fnf: "Fire",
 };
 
-export function Composer({ state, ...props }: Props) {
+export function Composer({ endpoint, splitW, ...props }: Props) {
   return (
     <div
       data-screen-label="Composer"
       style={{
         flex: "none",
-        width: state.splitW + "px",
+        width: splitW + "px",
         overflowY: "auto",
         overflowX: "hidden",
         background: "#0a0c10",
@@ -103,7 +104,7 @@ export function Composer({ state, ...props }: Props) {
           boxSizing: "border-box",
         }}
       >
-        {state.protocol === "ws" && (
+        {endpoint.protocol === "ws" && (
           <>
             <div>
               <label style={labelStyle}>
@@ -113,7 +114,7 @@ export function Composer({ state, ...props }: Props) {
                 </span>
               </label>
               <input
-                value={state.wsProtocols}
+                value={endpoint.wsProtocols}
                 onChange={props.setField("wsProtocols")}
                 placeholder="e.g. graphql-ws"
                 spellCheck={false}
@@ -131,13 +132,13 @@ export function Composer({ state, ...props }: Props) {
                 </button>
               </div>
               <div style={{ flex: 1, minHeight: 0, border: "1px solid #1c232f", borderRadius: "8px", overflow: "hidden" }}>
-                <JsonEditor value={state.wsPayload} onChange={props.setFieldValue("wsPayload")} fillHeight />
+                <JsonEditor value={endpoint.wsPayload} onChange={props.setFieldValue("wsPayload")} fillHeight />
               </div>
             </div>
           </>
         )}
 
-        {state.protocol === "stomp" && (
+        {endpoint.protocol === "stomp" && (
           <div style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
             <div style={{ background: "#0b0e13", border: "1px solid #1c232f", borderRadius: "10px", padding: "13px 14px" }}>
               <div style={{ font: "700 11px 'IBM Plex Sans'", color: "#8a93a4", letterSpacing: ".06em", marginBottom: "10px" }}>
@@ -146,7 +147,7 @@ export function Composer({ state, ...props }: Props) {
               <label style={labelStyle}>Destination</label>
               <div style={{ display: "flex", gap: "8px" }}>
                 <input
-                  value={state.stompSubDest}
+                  value={endpoint.stompSubDest}
                   onChange={props.setField("stompSubDest")}
                   placeholder="/topic/messages"
                   spellCheck={false}
@@ -164,7 +165,7 @@ export function Composer({ state, ...props }: Props) {
                     (applied on Connect)
                   </span>
                 </label>
-                {state.stompConnectHeaders.map((row, index) => (
+                {endpoint.stompConnectHeaders.map((row, index) => (
                   <div key={index} style={{ display: "flex", gap: "6px", marginBottom: "5px" }}>
                     <input
                       value={row.key}
@@ -208,7 +209,7 @@ export function Composer({ state, ...props }: Props) {
               </div>
               <label style={labelStyle}>Destination</label>
               <input
-                value={state.stompSendDest}
+                value={endpoint.stompSendDest}
                 onChange={props.setField("stompSendDest")}
                 placeholder="/app/hello"
                 spellCheck={false}
@@ -217,17 +218,17 @@ export function Composer({ state, ...props }: Props) {
               />
               <label style={labelStyle}>Body</label>
               <div style={{ flex: 1, minHeight: 0, border: "1px solid #1c232f", borderRadius: "8px", overflow: "hidden" }}>
-                <JsonEditor value={state.stompBody} onChange={props.setFieldValue("stompBody")} fillHeight />
+                <JsonEditor value={endpoint.stompBody} onChange={props.setFieldValue("stompBody")} fillHeight />
               </div>
             </div>
           </div>
         )}
 
-        {state.protocol === "rsocket" && (
+        {endpoint.protocol === "rsocket" && (
           <>
             <div style={{ display: "flex", gap: "3px", background: "#0c0f15", border: "1px solid #1c232f", borderRadius: "9px", padding: "3px", flexWrap: "wrap" }}>
               {RS_MODELS.map((option) => (
-                <button key={option.value} onClick={() => props.onProtoModel(option.value)} style={seg(state.rsModel === option.value)}>
+                <button key={option.value} onClick={() => props.onProtoModel(option.value)} style={seg(endpoint.rsModel === option.value)}>
                   {option.label}
                 </button>
               ))}
@@ -241,7 +242,7 @@ export function Composer({ state, ...props }: Props) {
                   </span>
                 </label>
                 <input
-                  value={state.rsRoute}
+                  value={endpoint.rsRoute}
                   onChange={props.setField("rsRoute")}
                   placeholder="greeting"
                   spellCheck={false}
@@ -252,7 +253,7 @@ export function Composer({ state, ...props }: Props) {
               <div>
                 <label style={labelStyle}>Initial requestN</label>
                 <input
-                  value={state.rsInitialN}
+                  value={endpoint.rsInitialN}
                   onChange={props.setField("rsInitialN")}
                   spellCheck={false}
                   className="sb-input"
@@ -266,7 +267,7 @@ export function Composer({ state, ...props }: Props) {
                   Data payload
                 </label>
                 <div style={{ display: "flex", gap: "8px" }}>
-                  {state.rsModel === "channel" && (
+                  {endpoint.rsModel === "channel" && (
                     <>
                       <button onClick={props.rsChannelPush} className="sb-soft-btn2" style={{ ...softBtn, padding: "7px 13px" }}>
                         Push frame
@@ -277,12 +278,12 @@ export function Composer({ state, ...props }: Props) {
                     </>
                   )}
                   <button onClick={props.rsRequest} className="sb-brighten" style={accentBtn}>
-                    {RS_LABELS[state.rsModel]}
+                    {RS_LABELS[endpoint.rsModel]}
                   </button>
                 </div>
               </div>
               <div style={{ flex: 1, minHeight: 0, border: "1px solid #1c232f", borderRadius: "8px", overflow: "hidden" }}>
-                <JsonEditor value={state.rsData} onChange={props.setFieldValue("rsData")} fillHeight />
+                <JsonEditor value={endpoint.rsData} onChange={props.setFieldValue("rsData")} fillHeight />
               </div>
               <div style={{ marginTop: "8px", font: "11.5px 'IBM Plex Sans'", color: "#5a6270", lineHeight: 1.5 }}>
                 ⚗ Experimental — sends SETUP with composite-metadata /{" "}

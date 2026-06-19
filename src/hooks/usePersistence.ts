@@ -1,34 +1,22 @@
 import { useEffect } from "react";
-import type { MutableRefObject } from "react";
 import { KEYS, write } from "../lib/storage";
-import type { AnyClient } from "../lib/clients";
-import type { Collection, HistoryItem, Settings } from "../types";
+import type { Settings } from "../types";
 
 interface Deps {
-  collections: Collection[];
-  history: HistoryItem[];
   settings: Settings;
-  saveForm: () => void;
-  clientRef: MutableRefObject<AnyClient | null>;
+  saveEndpoints: () => void;
+  closeAll: () => void;
 }
 
-export function usePersistence({ collections, history, settings, saveForm, clientRef }: Deps) {
-  useEffect(() => write(KEYS.collections, collections), [collections]);
-  useEffect(() => write(KEYS.history, history), [history]);
+export function usePersistence({ settings, saveEndpoints, closeAll }: Deps) {
   useEffect(() => write(KEYS.settings, settings), [settings]);
 
   useEffect(() => {
-    window.addEventListener("beforeunload", saveForm);
+    window.addEventListener("beforeunload", saveEndpoints);
     return () => {
-      saveForm();
-      const client = clientRef.current;
-      if (client)
-        try {
-          client.close();
-        } catch {
-          /* ignore */
-        }
-      window.removeEventListener("beforeunload", saveForm);
+      saveEndpoints();
+      closeAll();
+      window.removeEventListener("beforeunload", saveEndpoints);
     };
-  }, [saveForm, clientRef]);
+  }, [saveEndpoints, closeAll]);
 }

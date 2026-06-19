@@ -1,130 +1,185 @@
 import { useCallback, type CSSProperties } from "react";
-import { Sidebar } from "./components/Sidebar";
+import { EndpointList } from "./components/EndpointList";
+import { EmptyState } from "./components/EmptyState";
 import { ConnectionBar } from "./components/ConnectionBar";
 import { Composer } from "./components/Composer";
 import { Results } from "./components/Results";
-import { useAppState } from "./state/useAppState";
-import { FORM_KEYS } from "./state/appState";
+import { useWorkspace } from "./state/useWorkspace";
+import {
+  type Endpoint,
+  DEFAULT_ENDPOINT,
+  ENDPOINT_CONFIG_KEYS,
+  endpointDisplayName,
+} from "./state/endpoint";
 import { KEYS, write } from "./lib/storage";
-import { useMessageLog } from "./hooks/useMessageLog";
-import { useHistory } from "./hooks/useHistory";
-import { useSocketConnection } from "./hooks/useSocketConnection";
-import { useCollections } from "./hooks/useCollections";
-import { useHeaderRows } from "./hooks/useHeaderRows";
+import { useConnections } from "./hooks/useConnections";
 import { useSplitPane } from "./hooks/useSplitPane";
 import { usePersistence } from "./hooks/usePersistence";
 import { rootStyle, dividerStyle, dividerHandleStyle } from "./styles";
-import type { AppState } from "./state/appState";
 
 export function App() {
-  const { state, setState, patch, stateRef } = useAppState();
+  const { state, setState, patch, stateRef, updateEndpoint, patchEndpoint } = useWorkspace();
+  const active = state.endpoints.find((e) => e.id === state.activeEndpointId) ?? null;
 
-  const saveForm = useCallback(() => {
+  const saveEndpoints = useCallback(() => {
     const snapshot = stateRef.current;
-    const form: Record<string, unknown> = {};
-    FORM_KEYS.forEach((key) => (form[key] = snapshot[key]));
-    write(KEYS.form, form);
+    const configs = snapshot.endpoints.map((endpoint) => {
+      const config: Record<string, unknown> = {};
+      const source = endpoint as unknown as Record<string, unknown>;
+      ENDPOINT_CONFIG_KEYS.forEach((key) => (config[key] = source[key]));
+      return config;
+    });
+    write(KEYS.endpoints, configs);
+    write(KEYS.activeEndpoint, snapshot.activeEndpointId);
   }, [stateRef]);
 
-  const { addMsg, err, clearMessages } = useMessageLog(setState);
-  const { pushHistory, loadHistory, clearHistory } = useHistory(setState, stateRef);
-  const conn = useSocketConnection({ patch, setState, stateRef, addMsg, err, pushHistory, saveForm });
-  const { saveCollection, loadCollection, deleteCollection } = useCollections({
-    setState, stateRef, patch, err,
-  });
-  const { setHeader, addHeader, removeHeader } = useHeaderRows(setState);
+  const conn = useConnections({ stateRef, updateEndpoint, patchEndpoint, saveEndpoints });
   const { splitElRef, onDragStart } = useSplitPane(patch);
+  usePersistence({ settings: state.settings, saveEndpoints, closeAll: conn.closeAll });
 
-  usePersistence({
-    collections: state.collections,
-    history: state.history,
-    settings: state.settings,
-    saveForm,
-    clientRef: conn.clientRef,
-  });
+  /* ---------------- endpoint CRUD ---------------- */
+  const createEndpoint = useCallback(() => {
+    const endpoint = DEFAULT_ENDPOINT();
+    setState((prev) => ({
+      ...prev,
+      endpoints: prev.endpoints.concat([endpoint]),
+      activeEndpointId: endpoint.id,
+    }));
+    saveEndpoints();
+  }, [saveEndpoints, setState]);
 
+  const selectEndpoint = (id: string) => {
+    patch({ activeEndpointId: id });
+    saveEndpoints();
+  };
+  const renameEndpoint = (id: string, name: string) => {
+    patchEndpoint(id, { name });
+    saveEndpoints();
+  };
+  const deleteEndpoint = (id: string) => {
+    const endpoint = stateRef.current.endpoints.find((e) => e.id === id);
+    if (!endpoint) return;
+    if (!window.confirm(`Delete endpoint "${endpointDisplayName(endpoint)}"? This closes its connection.`))
+      return;
+    conn.disconnect(id, true);
+    setState((prev) => {
+      const endpoints = prev.endpoints.filter((e) => e.id !== id);
+      const activeEndpointId =
+        prev.activeEndpointId === id ? (endpoints[0]?.id ?? null) : prev.activeEndpointId;
+      return { ...prev, endpoints, activeEndpointId };
+    });
+    saveEndpoints();
+  };
+
+  /* ---------------- active-endpoint field setters ---------------- */
   const setField =
-    (field: keyof AppState) =>
-    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-      patch({ [field]: event.target.value } as Partial<AppState>);
+    (field: keyof Endpoint) =>
+    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      if (active) patchEndpoint(active.id, { [field]: event.target.value } as Partial<Endpoint>);
+    };
+  const setFieldValue = (field: keyof Endpoint) => (value: string) => {
+    if (active) patchEndpoint(active.id, { [field]: value } as Partial<Endpoint>);
+  };
+  const setHeader =
+    (field: "stompConnectHeaders" | "stompSendHeaders", index: number, column: "key" | "value") =>
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      if (!active) return;
+      const value = event.target.value;
+      updateEndpoint(active.id, (e) => {
+        const rows = e[field].slice();
+        rows[index] = { ...rows[index], [column]: value };
+        return { ...e, [field]: rows };
+      });
+    };
+  const addHeader = (field: "stompConnectHeaders" | "stompSendHeaders") => () => {
+    if (active)
+      updateEndpoint(active.id, (e) => ({ ...e, [field]: e[field].concat([{ key: "", value: "" }]) }));
+  };
+  const removeHeader =
+    (field: "stompConnectHeaders" | "stompSendHeaders", index: number) => () => {
+      if (active)
+        updateEndpoint(active.id, (e) => {
+          const rows = e[field].filter((_, position) => position !== index);
+          return { ...e, [field]: rows.length ? rows : [{ key: "", value: "" }] };
+        });
+    };
 
-  const setFieldValue =
-    (field: keyof AppState) =>
-    (value: string) =>
-      patch({ [field]: value } as Partial<AppState>);
-
-  const fillSample = () => patch({ protocol: "ws", url: "wss://ws.postman-echo.com/raw" });
-  const connected = state.status === "open";
-  const busy = state.status === "connecting";
+  const connected = active?.status === "open";
+  const busy = active?.status === "connecting";
   const root: CSSProperties = rootStyle(state.settings);
 
   return (
     <div style={root}>
-      <Sidebar
-        sidebarTab={state.sidebarTab}
-        collections={state.collections}
-        history={state.history}
-        onCollTab={() => patch({ sidebarTab: "collections" })}
-        onHistTab={() => patch({ sidebarTab: "history" })}
-        onSave={saveCollection}
-        onLoadCollection={loadCollection}
-        onDeleteCollection={deleteCollection}
-        onLoadHistory={loadHistory}
-        onClearHistory={clearHistory}
+      <EndpointList
+        endpoints={state.endpoints}
+        activeId={state.activeEndpointId}
+        onSelect={selectEndpoint}
+        onCreate={createEndpoint}
+        onRename={renameEndpoint}
+        onDelete={deleteEndpoint}
       />
 
-      <main style={{ display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0 }}>
-        <ConnectionBar
-          protocol={state.protocol}
-          url={state.url}
-          status={state.status}
-          statusText={state.statusText}
-          latency={state.latency}
-          settings={state.settings}
-          connected={connected}
-          busy={busy}
-          onProtocol={(protocol) => patch({ protocol })}
-          onUrl={setField("url")}
-          onToggleConnect={connected || busy ? () => conn.disconnect(false) : conn.connect}
-          onAccent={(accent) => patch({ settings: { ...state.settings, accent } })}
-          onDensity={(density) => patch({ settings: { ...state.settings, density } })}
-        />
-
-        <div
-          ref={splitElRef}
-          style={{ flex: 1, display: "flex", flexDirection: "row", minHeight: 0, minWidth: 0 }}
-        >
-          <Composer
-            state={state}
-            setField={setField}
-            setFieldValue={setFieldValue}
-            setHeader={setHeader}
-            addHeader={addHeader}
-            removeHeader={removeHeader}
-            onProtoModel={(model) => patch({ rsModel: model })}
-            wsSend={conn.wsSend}
-            stompSubscribe={conn.stompSubscribe}
-            stompSend={conn.stompSend}
-            rsRequest={conn.rsRequest}
-            rsChannelPush={conn.rsChannelPush}
-            rsChannelComplete={conn.rsChannelComplete}
+      {active ? (
+        <main key={active.id} style={{ display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0 }}>
+          <ConnectionBar
+            protocol={active.protocol}
+            url={active.url}
+            status={active.status}
+            statusText={active.statusText}
+            latency={active.latency}
+            settings={state.settings}
+            connected={!!connected}
+            busy={!!busy}
+            onProtocol={(protocol) => patchEndpoint(active.id, { protocol })}
+            onUrl={setField("url")}
+            onToggleConnect={
+              connected || busy ? () => conn.disconnect(active.id, false) : () => conn.connect(active.id)
+            }
+            onAccent={(accent) => patch({ settings: { ...state.settings, accent } })}
+            onDensity={(density) => patch({ settings: { ...state.settings, density } })}
           />
 
-          <div className="sb-divider" onMouseDown={onDragStart} style={dividerStyle}>
-            <div style={dividerHandleStyle} />
+          <div
+            ref={splitElRef}
+            style={{ flex: 1, display: "flex", flexDirection: "row", minHeight: 0, minWidth: 0 }}
+          >
+            <Composer
+              endpoint={active}
+              splitW={state.splitW}
+              setField={setField}
+              setFieldValue={setFieldValue}
+              setHeader={setHeader}
+              addHeader={addHeader}
+              removeHeader={removeHeader}
+              onProtoModel={(model) => patchEndpoint(active.id, { rsModel: model })}
+              wsSend={() => conn.wsSend(active.id)}
+              stompSubscribe={() => conn.stompSubscribe(active.id)}
+              stompSend={() => conn.stompSend(active.id)}
+              rsRequest={() => conn.rsRequest(active.id)}
+              rsChannelPush={() => conn.rsChannelPush(active.id)}
+              rsChannelComplete={() => conn.rsChannelComplete(active.id)}
+            />
+
+            <div className="sb-divider" onMouseDown={onDragStart} style={dividerStyle}>
+              <div style={dividerHandleStyle} />
+            </div>
+
+            <Results
+              endpoint={active}
+              onTab={(tab) => patchEndpoint(active.id, { resultTab: tab })}
+              onFilter={setField("filterText")}
+              onFilterDir={(direction) => patchEndpoint(active.id, { filterDir: direction })}
+              onClear={() => conn.clearMessages(active.id)}
+              onCancelSub={(sub) => conn.cancelSub(active.id, sub)}
+              onFillSample={() =>
+                patchEndpoint(active.id, { protocol: "ws", url: "wss://ws.postman-echo.com/raw" })
+              }
+            />
           </div>
-
-          <Results
-            state={state}
-            onTab={(tab) => patch({ resultTab: tab })}
-            onFilter={setField("filterText")}
-            onFilterDir={(direction) => patch({ filterDir: direction })}
-            onClear={clearMessages}
-            onCancelSub={conn.cancelSub}
-            onFillSample={fillSample}
-          />
-        </div>
-      </main>
+        </main>
+      ) : (
+        <EmptyState onCreate={createEndpoint} />
+      )}
     </div>
   );
 }

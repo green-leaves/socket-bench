@@ -1,8 +1,6 @@
 /* storage.ts — localStorage access with the SocketBench key namespace. */
 export const KEYS = {
-  collections: "sktool.collections",
-  history: "sktool.history",
-  form: "sktool.form",
+  collections: "sktool.collections", // legacy — read once for migration
   settings: "sktool.settings",
   endpoints: "sktool.endpoints",
   activeEndpoint: "sktool.activeEndpoint",
