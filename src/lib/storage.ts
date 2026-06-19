@@ -4,6 +4,8 @@ export const KEYS = {
   history: "sktool.history",
   form: "sktool.form",
   settings: "sktool.settings",
+  endpoints: "sktool.endpoints",
+  activeEndpoint: "sktool.activeEndpoint",
 } as const;
 
 /**
