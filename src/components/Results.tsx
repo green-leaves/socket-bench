@@ -272,8 +272,6 @@ export function Results({ endpoint, ...props }: Props) {
     if (resultTab !== "raw") return "";
     return (
       messages
-        .slice()
-        .reverse()
         .map((message) => {
           const dirStyle = dirMeta[message.dir] || dirMeta.sys;
           const tag = message.kind === "err" ? "ERR" : dirStyle.label;
