@@ -30,6 +30,19 @@ const editorTheme = createTheme({
   ],
 });
 
+/* Hoisted so their identity is stable across renders — passing fresh
+   `extensions`/`basicSetup` on every keystroke makes CodeMirror tear down and
+   reconfigure the editor each time, which is needless work while typing. */
+const jsonExtensions = [json()];
+const basicSetupConfig = {
+  lineNumbers: true,
+  foldGutter: false,
+  highlightActiveLine: false,
+  highlightActiveLineGutter: false,
+  bracketMatching: true,
+  autocompletion: false,
+} as const;
+
 interface JsonEditorProps {
   value: string;
   onChange: (value: string) => void;
@@ -45,18 +58,11 @@ export function JsonEditor({ value, onChange, fillHeight, minHeight }: JsonEdito
       value={value}
       onChange={onChange}
       theme={editorTheme}
-      extensions={[json()]}
+      extensions={jsonExtensions}
       height={fillHeight ? "100%" : undefined}
       minHeight={fillHeight ? undefined : minHeight || "120px"}
       style={fillHeight ? { height: "100%" } : undefined}
-      basicSetup={{
-        lineNumbers: true,
-        foldGutter: false,
-        highlightActiveLine: false,
-        highlightActiveLineGutter: false,
-        bracketMatching: true,
-        autocompletion: false,
-      }}
+      basicSetup={basicSetupConfig}
     />
   );
 }

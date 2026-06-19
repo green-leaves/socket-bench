@@ -1,4 +1,5 @@
-import { memo, type CSSProperties } from "react";
+import { memo, useMemo, useRef, type CSSProperties } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import type { Endpoint } from "../state/endpoint";
 import type { FilterDir, Message, Subscription } from "../types";
 import { dirMeta, fmtTime, MONO, pill, seg } from "../styles";
@@ -49,7 +50,6 @@ const MessageCard = memo(function MessageCard({ message }: { message: Message })
         display: "flex",
         flexDirection: "column",
         gap: "7px",
-        animation: "sb-in .18s ease",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -203,38 +203,97 @@ const Metrics = memo(function Metrics({ messages }: { messages: Message[] }) {
   );
 });
 
-export function Results({ endpoint, ...props }: Props) {
-  const filterQuery = (endpoint.filterText || "").toLowerCase();
-  const filtered = endpoint.messages.filter(
-    (message) =>
-      (endpoint.filterDir === "all" || message.dir === endpoint.filterDir) &&
-      (!filterQuery ||
-        message.raw.toLowerCase().indexOf(filterQuery) > -1 ||
-        (message.label || "").toLowerCase().indexOf(filterQuery) > -1),
-  );
+const ROW_GAP = 9; // vertical space between cards, in px
 
-  const rawDump =
-    endpoint.messages
-      .slice()
-      .reverse()
-      .map((message) => {
-        const dirStyle = dirMeta[message.dir] || dirMeta.sys;
-        const tag = message.kind === "err" ? "ERR" : dirStyle.label;
-        return (
-          "[" +
-          fmtTime(message.ts) +
-          "] " +
-          tag +
-          (tag.length < 3 ? " " : "") +
-          " " +
-          (message.label ? "(" + message.label + ") " : "") +
-          "· " +
-          util.formatBytes(message.size) +
-          "\n" +
-          message.raw
-        );
-      })
-      .join("\n\n") || "— no frames —";
+/* Windowed message list: only the cards inside (or near) the viewport are
+   mounted, so the DOM stays small no matter how many messages are logged.
+   Without this, thousands of cards — each a <pre> of many highlighted spans —
+   bloat the DOM and make every interaction (including typing in the Composer)
+   janky. Memoized so a Composer keystroke, which leaves `items` referentially
+   unchanged, doesn't even re-run the virtualizer. */
+const MessageLog = memo(function MessageLog({ items }: { items: Message[] }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const virtualizer = useVirtualizer({
+    count: items.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 96,
+    overscan: 10,
+    getItemKey: (index) => items[index].id,
+  });
+
+  return (
+    <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", minHeight: 0, padding: "14px 0 5px" }}>
+      <div style={{ position: "relative", width: "100%", height: virtualizer.getTotalSize() + "px" }}>
+        {virtualizer.getVirtualItems().map((row) => (
+          <div
+            key={row.key}
+            data-index={row.index}
+            ref={virtualizer.measureElement}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              transform: `translateY(${row.start}px)`,
+              padding: `0 16px ${ROW_GAP}px`,
+              boxSizing: "border-box",
+            }}
+          >
+            <MessageCard message={items[row.index]} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+});
+
+export function Results({ endpoint, ...props }: Props) {
+  const { messages, filterText, filterDir, resultTab } = endpoint;
+
+  /* These derive from the message log, not the composer. Memoizing on the
+     log keeps typing in the Composer cheap: a keystroke only changes the
+     active endpoint's payload field (messages keeps the same array ref), so
+     none of this recomputes and React reuses the rendered card list below. */
+  const filtered = useMemo(() => {
+    const query = (filterText || "").toLowerCase();
+    return messages.filter(
+      (message) =>
+        (filterDir === "all" || message.dir === filterDir) &&
+        (!query ||
+          message.raw.toLowerCase().indexOf(query) > -1 ||
+          (message.label || "").toLowerCase().indexOf(query) > -1),
+    );
+  }, [messages, filterText, filterDir]);
+
+  /* Only build the raw dump when the Raw tab is actually showing — it's an
+     O(n) string concat over the whole log and was previously rebuilt on
+     every render regardless of the active tab. */
+  const rawDump = useMemo(() => {
+    if (resultTab !== "raw") return "";
+    return (
+      messages
+        .slice()
+        .reverse()
+        .map((message) => {
+          const dirStyle = dirMeta[message.dir] || dirMeta.sys;
+          const tag = message.kind === "err" ? "ERR" : dirStyle.label;
+          return (
+            "[" +
+            fmtTime(message.ts) +
+            "] " +
+            tag +
+            (tag.length < 3 ? " " : "") +
+            " " +
+            (message.label ? "(" + message.label + ") " : "") +
+            "· " +
+            util.formatBytes(message.size) +
+            "\n" +
+            message.raw
+          );
+        })
+        .join("\n\n") || "— no frames —"
+    );
+  }, [messages, resultTab]);
 
   return (
     <div
@@ -260,7 +319,7 @@ export function Results({ endpoint, ...props }: Props) {
           ))}
         </div>
         <span style={{ font: "11.5px " + MONO, color: "#59616f" }}>
-          {filtered.length}/{endpoint.messages.length}
+          {filtered.length}/{messages.length}
         </span>
         <div style={{ flex: 1 }} />
         <input
@@ -338,10 +397,10 @@ export function Results({ endpoint, ...props }: Props) {
         </div>
       )}
 
-      <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
-        {endpoint.resultTab === "messages" &&
-          (endpoint.messages.length === 0 ? (
-            <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: "30px" }}>
+      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+        {resultTab === "messages" &&
+          (messages.length === 0 ? (
+            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "30px" }}>
               <div style={{ maxWidth: "440px", textAlign: "center" }}>
                 <div style={{ font: "700 14px " + MONO, color: "#8a93a4", marginBottom: "14px" }}>
                   Awaiting frames
@@ -361,29 +420,31 @@ export function Results({ endpoint, ...props }: Props) {
               </div>
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "9px", padding: "14px 16px" }}>
-              {filtered.map((message) => (
-                <MessageCard key={message.id} message={message} />
-              ))}
-            </div>
+            <MessageLog items={filtered} />
           ))}
 
-        {endpoint.resultTab === "raw" && (
-          <pre
-            style={{
-              margin: 0,
-              padding: "16px",
-              font: "12px/1.6 " + MONO,
-              color: "#9aa3b2",
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-word",
-            }}
-          >
-            {rawDump}
-          </pre>
+        {resultTab === "raw" && (
+          <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
+            <pre
+              style={{
+                margin: 0,
+                padding: "16px",
+                font: "12px/1.6 " + MONO,
+                color: "#9aa3b2",
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word",
+              }}
+            >
+              {rawDump}
+            </pre>
+          </div>
         )}
 
-        {endpoint.resultTab === "metrics" && <Metrics messages={endpoint.messages} />}
+        {resultTab === "metrics" && (
+          <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
+            <Metrics messages={messages} />
+          </div>
+        )}
       </div>
     </div>
   );
