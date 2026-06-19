@@ -2,8 +2,6 @@ export type Protocol = "ws" | "stomp" | "rsocket";
 export type Direction = "in" | "out" | "sys";
 export type MsgKind = "msg" | "sys" | "err";
 export type RsModel = "stream" | "rr" | "channel" | "fnf";
-export type ResultTab = "messages" | "raw" | "metrics";
-export type SidebarTab = "collections" | "history";
 export type FilterDir = "all" | "in" | "out" | "sys";
 export type Status = "idle" | "connecting" | "open" | "closed" | "error";
 export type Density = "comfortable" | "compact";
@@ -39,14 +37,6 @@ export interface Collection {
   protocol: Protocol;
   url: string;
   meta?: CollectionMeta;
-}
-
-export interface HistoryItem {
-  id: string;
-  protocol: Protocol;
-  url: string;
-  action: string;
-  ts: number;
 }
 
 export interface HeaderRow {
