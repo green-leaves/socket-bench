@@ -5,9 +5,15 @@ import {
   type AnyClient,
 } from "./clients";
 import { rowsToObj } from "./util";
-import type { AppState } from "../state/appState";
-import type { Status } from "../types";
-import type { AddMsg } from "../hooks/useMessageLog";
+import type { HeaderRow, Protocol, Status } from "../types";
+import type { AddMsg } from "../state/endpoint";
+
+export interface ClientConfig {
+  protocol: Protocol;
+  url: string;
+  wsProtocols: string;
+  stompConnectHeaders: HeaderRow[];
+}
 
 export interface ClientHandlers {
   onStatus: (status: Status, text: string) => void;
@@ -15,7 +21,7 @@ export interface ClientHandlers {
   err: (msg: string) => void;
 }
 
-export function createClient(appState: AppState, handlers: ClientHandlers): AnyClient {
+export function createClient(appState: ClientConfig, handlers: ClientHandlers): AnyClient {
   if (appState.protocol === "ws") {
     return new WSClient({
       url: appState.url,
