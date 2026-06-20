@@ -125,6 +125,9 @@ export function App() {
   const setFieldValue = (field: keyof Endpoint) => (value: string) => {
     if (active) patchEndpoint(active.id, { [field]: value } as Partial<Endpoint>);
   };
+  const setFieldBool = (field: keyof Endpoint) => (value: boolean) => {
+    if (active) patchEndpoint(active.id, { [field]: value } as Partial<Endpoint>);
+  };
   const setHeader =
     (field: "stompConnectHeaders" | "stompSendHeaders", index: number, column: "key" | "value") =>
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -199,6 +202,8 @@ export function App() {
               setHeader={setHeader}
               addHeader={addHeader}
               removeHeader={removeHeader}
+              setFieldBool={setFieldBool}
+              fixSend={() => conn.fixSend(active.id)}
               onProtoModel={(model) => patchEndpoint(active.id, { rsModel: model })}
               wsSend={() => conn.wsSend(active.id)}
               stompSubscribe={() => conn.stompSubscribe(active.id)}
