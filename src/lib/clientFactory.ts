@@ -2,6 +2,10 @@ import {
   WSClient,
   StompClient,
   RSocketClient,
+  FIXClient,
+  prettyFrame,
+  getField,
+  byteLen,
   type AnyClient,
 } from "./clients";
 import { rowsToObj } from "./util";
@@ -13,6 +17,35 @@ export interface ClientConfig {
   url: string;
   wsProtocols: string;
   stompConnectHeaders: HeaderRow[];
+  fixGatewayUrl: string;
+  fixHost: string;
+  fixPort: string;
+  fixTls: boolean;
+  fixBeginString: string;
+  fixSenderCompID: string;
+  fixTargetCompID: string;
+  fixHeartBtInt: string;
+  fixResetSeq: boolean;
+  fixUsername: string;
+  fixPassword: string;
+}
+
+const FIX_SESSION_LABELS: Record<string, string> = {
+  "0": "Heartbeat",
+  "1": "TestRequest",
+  "2": "ResendRequest",
+  "3": "Reject",
+  "4": "SequenceReset",
+  "5": "Logout",
+  A: "Logon",
+};
+
+function buildGatewayUrl(config: ClientConfig): string {
+  const base = config.fixGatewayUrl.replace(/\/+$/, "");
+  return (
+    `${base}/?host=${encodeURIComponent(config.fixHost)}` +
+    `&port=${encodeURIComponent(config.fixPort)}&tls=${config.fixTls ? "1" : "0"}`
+  );
 }
 
 export interface ClientHandlers {
@@ -60,6 +93,54 @@ export function createClient(appState: ClientConfig, handlers: ClientHandlers): 
       onClose: (code) => {
         handlers.onStatus("closed", "Closed");
         handlers.addMsg({ dir: "sys", raw: "Closed · code " + code });
+      },
+      onError: (message) => {
+        handlers.onStatus("error", "Error");
+        handlers.err(message);
+      },
+    });
+  }
+
+  if (appState.protocol === "fix") {
+    return new FIXClient({
+      url: buildGatewayUrl(appState),
+      session: {
+        beginString: appState.fixBeginString,
+        senderCompID: appState.fixSenderCompID,
+        targetCompID: appState.fixTargetCompID,
+        heartBtInt: Number(appState.fixHeartBtInt) || 30,
+        resetSeqNum: appState.fixResetSeq,
+        username: appState.fixUsername || undefined,
+        password: appState.fixPassword || undefined,
+      },
+      onLogon: () => {
+        handlers.onStatus("open", "FIX logged on");
+        handlers.addMsg({ dir: "sys", raw: "Logon ack received" });
+      },
+      onLogout: (text) =>
+        handlers.addMsg({ dir: "sys", raw: "Logout" + (text ? ": " + text : "") }),
+      onMessage: (frame, fields) =>
+        handlers.addMsg({
+          dir: "in",
+          raw: prettyFrame(frame),
+          label: getField(fields, 35) || "",
+          size: byteLen(frame),
+        }),
+      onSession: (msgType, frame) =>
+        handlers.addMsg({
+          dir: "sys",
+          raw: prettyFrame(frame),
+          label: FIX_SESSION_LABELS[msgType] || "MsgType " + msgType,
+        }),
+      onGap: (expected, received) =>
+        handlers.addMsg({
+          dir: "sys",
+          kind: "err",
+          raw: `Sequence gap: expected ${expected}, received ${received}`,
+        }),
+      onClose: () => {
+        handlers.onStatus("closed", "Closed");
+        handlers.addMsg({ dir: "sys", raw: "Disconnected" });
       },
       onError: (message) => {
         handlers.onStatus("error", "Error");
