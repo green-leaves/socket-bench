@@ -22,6 +22,7 @@ const PROTOS: { value: Protocol; label: string }[] = [
   { value: "ws", label: "WebSocket" },
   { value: "stomp", label: "STOMP" },
   { value: "rsocket", label: "RSocket" },
+  { value: "fix", label: "FIX" },
 ];
 
 export function ConnectionBar(props: Props) {
@@ -86,24 +87,41 @@ export function ConnectionBar(props: Props) {
         ))}
       </div>
 
-      <input
-        value={props.url}
-        onChange={props.onUrl}
-        placeholder="wss://example.com/ws"
-        spellCheck={false}
-        className="sb-input"
-        style={{
-          flex: 1,
-          minWidth: "120px",
-          background: "#0c0f15",
-          border: "1px solid #1c232f",
-          borderRadius: "8px",
-          padding: "9px 12px",
-          color: "#dce1ea",
-          font: "13px " + MONO,
-          outline: "none",
-        }}
-      />
+      {props.protocol === "fix" ? (
+        <div
+          style={{
+            flex: 1,
+            minWidth: "120px",
+            padding: "9px 12px",
+            borderRadius: "8px",
+            border: "1px dashed #2a3340",
+            background: "#0c0f15",
+            color: "#59616f",
+            font: "12px " + MONO,
+          }}
+        >
+          Configure gateway &amp; session below ↓
+        </div>
+      ) : (
+        <input
+          value={props.url}
+          onChange={props.onUrl}
+          placeholder="wss://example.com/ws"
+          spellCheck={false}
+          className="sb-input"
+          style={{
+            flex: 1,
+            minWidth: "120px",
+            background: "#0c0f15",
+            border: "1px solid #1c232f",
+            borderRadius: "8px",
+            padding: "9px 12px",
+            color: "#dce1ea",
+            font: "13px " + MONO,
+            outline: "none",
+          }}
+        />
+      )}
 
       <button onClick={props.onToggleConnect} className="sb-brighten" style={connectBtnStyle}>
         {props.busy ? "Connecting…" : props.connected ? "Disconnect" : "Connect"}
