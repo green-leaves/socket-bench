@@ -19,7 +19,7 @@ export function JsonView({ pretty }: { pretty: string }) {
   let cursor = 0;
   let keyCounter = 0;
   const regex =
-    /("(?:\\.|[^"\\])*")(\s*:)?|\b(true|false|null)\b|(-?\d+(?:\.\d+)?(?:[eE][+\-]?\d+)?)/g;
+    /("(?:\\.|[^"\\])*")(\s*:)?|\b(true|false|null)\b|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g;
   const push = (text: string, color: string | null) => {
     if (text)
       nodes.push(
