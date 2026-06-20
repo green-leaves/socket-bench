@@ -180,6 +180,7 @@ export function endpointFromCollection(collection: Collection): Endpoint {
 /** Sidebar label: explicit name, else the URL's last path segment, else "Untitled". */
 export function endpointDisplayName(endpoint: Endpoint): string {
   if (endpoint.name.trim()) return endpoint.name.trim();
+  if (endpoint.protocol === "fix") return endpoint.fixHost.trim() || "Untitled";
   const fromUrl = leaf((endpoint.url || "").replace(/^wss?:\/\//, "").split("?")[0]);
   return fromUrl || "Untitled";
 }

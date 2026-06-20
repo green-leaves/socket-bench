@@ -1,4 +1,4 @@
-import { memo, useMemo, useRef, type CSSProperties } from "react";
+import { memo, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { Endpoint } from "../state/endpoint";
 import type { FilterDir, Message, Subscription } from "../types";
@@ -249,6 +249,12 @@ const MessageLog = memo(function MessageLog({ items }: { items: Message[] }) {
 
 export function Results({ endpoint, ...props }: Props) {
   const { messages, filterText, filterDir, resultTab } = endpoint;
+  // FIX gateway guide: dismissable, and latched off for good once we ever log on.
+  const [guideOpen, setGuideOpen] = useState(true);
+  const [everLoggedOn, setEverLoggedOn] = useState(false);
+  useEffect(() => {
+    if (endpoint.status === "open") setEverLoggedOn(true);
+  }, [endpoint.status]);
 
   /* These derive from the message log, not the composer. Memoizing on the
      log keeps typing in the Composer cheap: a keystroke only changes the
@@ -343,6 +349,73 @@ export function Results({ endpoint, ...props }: Props) {
           Clear
         </button>
       </div>
+
+      {endpoint.protocol === "fix" && guideOpen && !everLoggedOn && endpoint.status !== "open" && (
+        <div
+          style={{
+            flex: "none",
+            padding: "12px 16px",
+            borderBottom: "1px solid #1c232f",
+            background: "rgba(45,212,167,0.06)",
+            position: "relative",
+          }}
+        >
+          <button
+            onClick={() => setGuideOpen(false)}
+            className="sb-cancel"
+            title="Dismiss"
+            aria-label="Dismiss"
+            style={{
+              position: "absolute",
+              top: "8px",
+              right: "10px",
+              background: "transparent",
+              border: "none",
+              color: "#59616f",
+              fontSize: "16px",
+              lineHeight: 1,
+              cursor: "pointer",
+              padding: "2px 5px",
+              borderRadius: "5px",
+            }}
+          >
+            ×
+          </button>
+          <div
+            style={{
+              font: "700 11px 'IBM Plex Sans'",
+              color: "var(--accent,#2dd4a7)",
+              letterSpacing: ".06em",
+              marginBottom: "6px",
+            }}
+          >
+            ⚡ FIX NEEDS A LOCAL GATEWAY
+          </div>
+          <div style={{ font: "12px/1.6 'IBM Plex Sans'", color: "#9aa3b2", paddingRight: "18px" }}>
+            Browsers can&apos;t open raw TCP sockets, so a tiny relay bridges this app to the FIX
+            acceptor. Start it once, then set the host/port + CompIDs and hit{" "}
+            <strong style={{ color: "#c4ccd8" }}>Connect</strong>.
+          </div>
+          <div
+            style={{
+              marginTop: "8px",
+              padding: "7px 10px",
+              background: "#0c0f15",
+              border: "1px solid #1c232f",
+              borderRadius: "7px",
+              color: "#dce1ea",
+              font: "12px " + MONO,
+              userSelect: "all",
+            }}
+          >
+            npx socketbench-fix-gateway
+          </div>
+          <div style={{ marginTop: "6px", font: "11px 'IBM Plex Sans'", color: "#5a6270" }}>
+            Listens on <span style={{ fontFamily: MONO, color: "#8a93a4" }}>ws://localhost:9001</span>{" "}
+            — already set as the default Gateway URL.
+          </div>
+        </div>
+      )}
 
       {endpoint.subscriptions.length > 0 && (
         <div
