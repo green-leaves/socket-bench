@@ -1,4 +1,5 @@
-import CodeMirror from "@uiw/react-codemirror";
+import { forwardRef, useImperativeHandle, useRef } from "react";
+import CodeMirror, { type ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { json } from "@codemirror/lang-json";
 import { createTheme } from "@uiw/codemirror-themes";
 import { tags } from "@lezer/highlight";
@@ -52,9 +53,33 @@ interface JsonEditorProps {
   minHeight?: string;
 }
 
-export function JsonEditor({ value, onChange, fillHeight, minHeight }: JsonEditorProps) {
+export interface JsonEditorHandle {
+  /** Insert `text` at the current cursor (replacing any selection) and refocus. */
+  insertText: (text: string) => void;
+}
+
+export const JsonEditor = forwardRef<JsonEditorHandle, JsonEditorProps>(function JsonEditor(
+  { value, onChange, fillHeight, minHeight },
+  ref,
+) {
+  const cmRef = useRef<ReactCodeMirrorRef>(null);
+
+  useImperativeHandle(ref, () => ({
+    insertText(text: string) {
+      const view = cmRef.current?.view;
+      if (!view) return;
+      const range = view.state.selection.main;
+      view.dispatch({
+        changes: { from: range.from, to: range.to, insert: text },
+        selection: { anchor: range.from + text.length },
+      });
+      view.focus();
+    },
+  }));
+
   return (
     <CodeMirror
+      ref={cmRef}
       value={value}
       onChange={onChange}
       theme={editorTheme}
@@ -65,4 +90,4 @@ export function JsonEditor({ value, onChange, fillHeight, minHeight }: JsonEdito
       basicSetup={basicSetupConfig}
     />
   );
-}
+});

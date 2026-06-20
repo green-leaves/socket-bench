@@ -1,9 +1,10 @@
-import type { CSSProperties } from "react";
+import { useRef, type CSSProperties } from "react";
 import type { Endpoint } from "../state/endpoint";
 import type { RsModel } from "../types";
 import { MONO, seg } from "../styles";
-import { JsonEditor } from "./JsonEditor";
+import { JsonEditor, type JsonEditorHandle } from "./JsonEditor";
 import { BeautifyButton } from "./BeautifyButton";
+import { VariablesMenu } from "./VariablesMenu";
 
 const payloadLabelStyle: CSSProperties = {
   font: "600 10px 'IBM Plex Sans'",
@@ -83,6 +84,11 @@ const RS_MODELS: { value: RsModel; label: string }[] = [
 ];
 
 export function Composer({ endpoint, splitW, ...props }: Props) {
+  // One handle per payload editor so the variables picker can insert at the cursor.
+  const wsEditorRef = useRef<JsonEditorHandle>(null);
+  const stompEditorRef = useRef<JsonEditorHandle>(null);
+  const rsEditorRef = useRef<JsonEditorHandle>(null);
+
   return (
     <div
       data-screen-label="Composer"
@@ -126,6 +132,7 @@ export function Composer({ endpoint, splitW, ...props }: Props) {
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
                 <label style={payloadLabelStyle}>Message payload</label>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <VariablesMenu onInsert={(token) => wsEditorRef.current?.insertText(token)} />
                   <BeautifyButton value={endpoint.wsPayload} onChange={props.setFieldValue("wsPayload")} />
                   <button onClick={props.wsSend} className="sb-brighten" style={accentBtn}>
                     Send ↵
@@ -133,7 +140,7 @@ export function Composer({ endpoint, splitW, ...props }: Props) {
                 </div>
               </div>
               <div style={{ flex: 1, minHeight: 0, border: "1px solid #1c232f", borderRadius: "8px", overflow: "hidden" }}>
-                <JsonEditor value={endpoint.wsPayload} onChange={props.setFieldValue("wsPayload")} fillHeight />
+                <JsonEditor ref={wsEditorRef} value={endpoint.wsPayload} onChange={props.setFieldValue("wsPayload")} fillHeight />
               </div>
             </div>
           </>
@@ -221,10 +228,13 @@ export function Composer({ endpoint, splitW, ...props }: Props) {
               </div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
                 <label style={payloadLabelStyle}>Body</label>
-                <BeautifyButton value={endpoint.stompBody} onChange={props.setFieldValue("stompBody")} />
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <VariablesMenu onInsert={(token) => stompEditorRef.current?.insertText(token)} />
+                  <BeautifyButton value={endpoint.stompBody} onChange={props.setFieldValue("stompBody")} />
+                </div>
               </div>
               <div style={{ flex: 1, minHeight: 0, border: "1px solid #1c232f", borderRadius: "8px", overflow: "hidden" }}>
-                <JsonEditor value={endpoint.stompBody} onChange={props.setFieldValue("stompBody")} fillHeight />
+                <JsonEditor ref={stompEditorRef} value={endpoint.stompBody} onChange={props.setFieldValue("stompBody")} fillHeight />
               </div>
             </div>
           </div>
@@ -264,6 +274,7 @@ export function Composer({ endpoint, splitW, ...props }: Props) {
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px", gap: "8px", flexWrap: "wrap" }}>
                 <label style={payloadLabelStyle}>Data payload</label>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <VariablesMenu onInsert={(token) => rsEditorRef.current?.insertText(token)} />
                   <BeautifyButton value={endpoint.rsData} onChange={props.setFieldValue("rsData")} />
                   {endpoint.rsModel === "channel" && (
                     <>
@@ -278,7 +289,7 @@ export function Composer({ endpoint, splitW, ...props }: Props) {
                 </div>
               </div>
               <div style={{ flex: 1, minHeight: 0, border: "1px solid #1c232f", borderRadius: "8px", overflow: "hidden" }}>
-                <JsonEditor value={endpoint.rsData} onChange={props.setFieldValue("rsData")} fillHeight />
+                <JsonEditor ref={rsEditorRef} value={endpoint.rsData} onChange={props.setFieldValue("rsData")} fillHeight />
               </div>
               <div style={{ marginTop: "8px", font: "11.5px 'IBM Plex Sans'", color: "#5a6270", lineHeight: 1.5 }}>
                 ⚗ Experimental — sends SETUP with composite-metadata /{" "}

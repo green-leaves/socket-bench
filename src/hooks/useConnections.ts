@@ -8,6 +8,7 @@ import {
   util,
 } from "../lib/clients";
 import { rowsToObj } from "../lib/util";
+import { render } from "../lib/templating";
 import { createClient } from "../lib/clientFactory";
 import { type AddMsg, type Endpoint, type WorkspaceState } from "../state/endpoint";
 import type { Message, Subscription } from "../types";
@@ -143,8 +144,9 @@ export function useConnections(deps: Deps) {
         return;
       }
       try {
-        const byteCount = (clientsRef.current.get(id) as WSClient).send(endpoint.wsPayload);
-        addMsg(id, { dir: "out", raw: endpoint.wsPayload, size: byteCount });
+        const payload = render(endpoint.wsPayload);
+        const byteCount = (clientsRef.current.get(id) as WSClient).send(payload);
+        addMsg(id, { dir: "out", raw: payload, size: byteCount });
       } catch (error) {
         err(id, (error as Error).message);
       }
@@ -178,12 +180,13 @@ export function useConnections(deps: Deps) {
         return;
       }
       const destination = endpoint.stompSendDest.trim();
+      const body = render(endpoint.stompBody);
       const byteCount = (clientsRef.current.get(id) as StompClient).send(
         destination,
-        endpoint.stompBody,
+        body,
         rowsToObj(endpoint.stompSendHeaders),
       );
-      addMsg(id, { dir: "out", raw: endpoint.stompBody, label: destination, size: byteCount });
+      addMsg(id, { dir: "out", raw: body, label: destination, size: byteCount });
     },
     [addMsg, endpointOf, err, ready],
   );
@@ -198,7 +201,7 @@ export function useConnections(deps: Deps) {
       }
       const client = clientsRef.current.get(id) as RSocketClient;
       const route = endpoint.rsRoute.trim();
-      const data = endpoint.rsData;
+      const data = render(endpoint.rsData);
       const initialRequestN = parseInt(endpoint.rsInitialN, 10) || 2147483647;
       const sendTimes = sendTimesRef.current.get(id) ?? {};
       sendTimesRef.current.set(id, sendTimes);
@@ -261,12 +264,13 @@ export function useConnections(deps: Deps) {
         err(id, "No open channel — send a request-channel first.");
         return;
       }
+      const data = render(endpoint.rsData);
       const byteCount = (clientsRef.current.get(id) as RSocketClient).sendPayload(
         channel,
-        endpoint.rsData,
+        data,
         false,
       );
-      addMsg(id, { dir: "out", raw: endpoint.rsData, label: "channel push", size: byteCount });
+      addMsg(id, { dir: "out", raw: data, label: "channel push", size: byteCount });
     },
     [addMsg, endpointOf, err],
   );
