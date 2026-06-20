@@ -37,6 +37,18 @@ export interface Endpoint {
   rsRoute: string;
   rsData: string;
   rsInitialN: string;
+  fixGatewayUrl: string;
+  fixHost: string;
+  fixPort: string;
+  fixTls: boolean;
+  fixBeginString: string;
+  fixSenderCompID: string;
+  fixTargetCompID: string;
+  fixHeartBtInt: string;
+  fixResetSeq: boolean;
+  fixUsername: string;
+  fixPassword: string;
+  fixMessage: string;
   // --- runtime (NOT persisted; reset on load) ---
   status: Status;
   statusText: string;
@@ -74,6 +86,18 @@ export const ENDPOINT_CONFIG_KEYS: (keyof Endpoint)[] = [
   "rsRoute",
   "rsData",
   "rsInitialN",
+  "fixGatewayUrl",
+  "fixHost",
+  "fixPort",
+  "fixTls",
+  "fixBeginString",
+  "fixSenderCompID",
+  "fixTargetCompID",
+  "fixHeartBtInt",
+  "fixResetSeq",
+  "fixUsername",
+  "fixPassword",
+  "fixMessage",
 ];
 
 export function newEndpointId(): string {
@@ -97,6 +121,18 @@ export function DEFAULT_ENDPOINT(id: string = newEndpointId()): Endpoint {
     rsRoute: "greeting",
     rsData: '{\n  "name": "QA"\n}',
     rsInitialN: "2147483647",
+    fixGatewayUrl: "ws://localhost:9001",
+    fixHost: "",
+    fixPort: "",
+    fixTls: false,
+    fixBeginString: "FIX.4.4",
+    fixSenderCompID: "CLIENT",
+    fixTargetCompID: "SERVER",
+    fixHeartBtInt: "30",
+    fixResetSeq: true,
+    fixUsername: "",
+    fixPassword: "",
+    fixMessage: "35=D|11={{uuid}}|55=AAPL|54=1|38=100|40=2|44=150.00",
     status: "idle",
     statusText: "Not connected",
     latency: null,
