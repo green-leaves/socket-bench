@@ -2,6 +2,8 @@
 
 A "Postman for sockets" — a developer tool for testing **WebSocket**, **STOMP over WebSocket**, and **RSocket** endpoints against live servers. Enter an endpoint, compose a payload or subscription, connect, and watch frames stream back in real time.
 
+**🔗 Live demo: https://green-leaves.github.io/socket-bench/**
+
 Built from the Claude Design prototype (`SocketBench.dc.html`) as a React + Vite + TypeScript app.
 
 ## Features
