@@ -1,4 +1,4 @@
-export type Protocol = "ws" | "stomp" | "rsocket";
+export type Protocol = "ws" | "stomp" | "rsocket" | "fix";
 export type Direction = "in" | "out" | "sys";
 export type MsgKind = "msg" | "sys" | "err";
 export type RsModel = "stream" | "rr" | "channel" | "fnf";

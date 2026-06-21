@@ -144,7 +144,11 @@ function Row({
             whiteSpace: "nowrap",
           }}
         >
-          {endpoint.url || "no URL yet"}
+          {endpoint.protocol === "fix"
+            ? endpoint.fixHost
+              ? endpoint.fixHost + (endpoint.fixPort ? ":" + endpoint.fixPort : "")
+              : "no acceptor set"
+            : endpoint.url || "no URL yet"}
         </div>
       </div>
       <span

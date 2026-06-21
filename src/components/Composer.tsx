@@ -13,6 +13,8 @@ const payloadLabelStyle: CSSProperties = {
   color: "#59616f",
 };
 
+const fixRowStyle: CSSProperties = { display: "flex", flexDirection: "column", gap: "5px", minWidth: 0 };
+
 interface Props {
   endpoint: Endpoint;
   splitW: number;
@@ -27,6 +29,8 @@ interface Props {
   ) => (event: React.ChangeEvent<HTMLInputElement>) => void;
   addHeader: (field: "stompConnectHeaders" | "stompSendHeaders") => () => void;
   removeHeader: (field: "stompConnectHeaders" | "stompSendHeaders", index: number) => () => void;
+  setFieldBool: (field: keyof Endpoint) => (value: boolean) => void;
+  fixSend: () => void;
   onProtoModel: (model: RsModel) => void;
   wsSend: () => void;
   stompSubscribe: () => void;
@@ -238,6 +242,198 @@ export function Composer({ endpoint, splitW, ...props }: Props) {
               </div>
             </div>
           </div>
+        )}
+
+        {endpoint.protocol === "fix" && (
+          <>
+            <div
+              style={{
+                background: "#0b0e13",
+                border: "1px solid #1c232f",
+                borderRadius: "10px",
+                padding: "13px 14px",
+              }}
+            >
+              <div
+                style={{
+                  font: "700 11px 'IBM Plex Sans'",
+                  color: "#8a93a4",
+                  letterSpacing: ".06em",
+                  marginBottom: "10px",
+                }}
+              >
+                GATEWAY &amp; SESSION
+              </div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                  gap: "10px",
+                }}
+              >
+                <div style={fixRowStyle}>
+                  <label style={labelStyle}>Gateway URL</label>
+                  <input
+                    value={endpoint.fixGatewayUrl}
+                    onChange={props.setField("fixGatewayUrl")}
+                    placeholder="ws://localhost:9988"
+                    spellCheck={false}
+                    className="sb-input"
+                    style={fieldStyle}
+                  />
+                </div>
+                <div style={fixRowStyle}>
+                  <label style={labelStyle}>BeginString</label>
+                  <input
+                    value={endpoint.fixBeginString}
+                    onChange={props.setField("fixBeginString")}
+                    placeholder="FIX.4.4"
+                    spellCheck={false}
+                    className="sb-input"
+                    style={fieldStyle}
+                  />
+                </div>
+                <div style={fixRowStyle}>
+                  <label style={labelStyle}>Acceptor host</label>
+                  <input
+                    value={endpoint.fixHost}
+                    onChange={props.setField("fixHost")}
+                    placeholder="fix.venue.com"
+                    spellCheck={false}
+                    className="sb-input"
+                    style={fieldStyle}
+                  />
+                </div>
+                <div style={fixRowStyle}>
+                  <label style={labelStyle}>Acceptor port</label>
+                  <input
+                    value={endpoint.fixPort}
+                    onChange={props.setField("fixPort")}
+                    placeholder="9823"
+                    spellCheck={false}
+                    className="sb-input"
+                    style={fieldStyle}
+                  />
+                </div>
+                <div style={fixRowStyle}>
+                  <label style={labelStyle}>SenderCompID</label>
+                  <input
+                    value={endpoint.fixSenderCompID}
+                    onChange={props.setField("fixSenderCompID")}
+                    spellCheck={false}
+                    className="sb-input"
+                    style={fieldStyle}
+                  />
+                </div>
+                <div style={fixRowStyle}>
+                  <label style={labelStyle}>TargetCompID</label>
+                  <input
+                    value={endpoint.fixTargetCompID}
+                    onChange={props.setField("fixTargetCompID")}
+                    spellCheck={false}
+                    className="sb-input"
+                    style={fieldStyle}
+                  />
+                </div>
+                <div style={fixRowStyle}>
+                  <label style={labelStyle}>HeartBtInt (s)</label>
+                  <input
+                    value={endpoint.fixHeartBtInt}
+                    onChange={props.setField("fixHeartBtInt")}
+                    placeholder="30"
+                    spellCheck={false}
+                    className="sb-input"
+                    style={fieldStyle}
+                  />
+                </div>
+                <div style={fixRowStyle}>
+                  <label style={labelStyle}>Username / Password</label>
+                  <div style={{ display: "flex", gap: "6px" }}>
+                    <input
+                      value={endpoint.fixUsername}
+                      onChange={props.setField("fixUsername")}
+                      placeholder="user (553)"
+                      spellCheck={false}
+                      className="sb-input"
+                      style={{ ...fieldStyle, flex: 1, minWidth: 0 }}
+                    />
+                    <input
+                      value={endpoint.fixPassword}
+                      onChange={props.setField("fixPassword")}
+                      placeholder="pass (554)"
+                      spellCheck={false}
+                      className="sb-input"
+                      style={{ ...fieldStyle, flex: 1, minWidth: 0 }}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: "18px", marginTop: "12px" }}>
+                <label
+                  style={{ display: "flex", alignItems: "center", gap: "7px", cursor: "pointer", color: "#c4ccd8", font: "12px 'IBM Plex Sans'" }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={endpoint.fixTls}
+                    onChange={(event) => props.setFieldBool("fixTls")(event.target.checked)}
+                  />
+                  TLS to acceptor
+                </label>
+                <label
+                  style={{ display: "flex", alignItems: "center", gap: "7px", cursor: "pointer", color: "#c4ccd8", font: "12px 'IBM Plex Sans'" }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={endpoint.fixResetSeq}
+                    onChange={(event) => props.setFieldBool("fixResetSeq")(event.target.checked)}
+                  />
+                  Reset seq on logon (141=Y)
+                </label>
+              </div>
+            </div>
+
+            <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: "6px",
+                }}
+              >
+                <label style={payloadLabelStyle}>Application message</label>
+                <button onClick={props.fixSend} className="sb-brighten" style={accentBtn}>
+                  Send ↵
+                </button>
+              </div>
+              <textarea
+                value={endpoint.fixMessage}
+                onChange={props.setField("fixMessage")}
+                spellCheck={false}
+                className="sb-input"
+                style={{
+                  flex: 1,
+                  minHeight: "120px",
+                  resize: "none",
+                  background: "#0c0f15",
+                  border: "1px solid #1c232f",
+                  borderRadius: "8px",
+                  padding: "10px 12px",
+                  color: "#dce1ea",
+                  font: "13px " + MONO,
+                  outline: "none",
+                }}
+              />
+              <div
+                style={{ marginTop: "8px", font: "11.5px 'IBM Plex Sans'", color: "#5a6270", lineHeight: 1.5 }}
+              >
+                Separate fields with <span style={{ fontFamily: MONO }}>|</span> or new lines (e.g.
+                <span style={{ fontFamily: MONO }}> 35=D|55=AAPL|38=100</span>). Header tags
+                (8/9/34/35/49/52/56) and checksum are managed for you; <span style={{ fontFamily: MONO }}>{"{{uuid}}"}</span>{" "}
+                and other variables expand on send. Connect performs Logon; Disconnect performs Logout.
+              </div>
+            </div>
+          </>
         )}
 
         {endpoint.protocol === "rsocket" && (

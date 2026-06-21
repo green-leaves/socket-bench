@@ -5,6 +5,9 @@ import {
   WSClient,
   StompClient,
   RSocketClient,
+  FIXClient,
+  prettyFrame,
+  byteLen,
   util,
 } from "../lib/clients";
 import { rowsToObj } from "../lib/util";
@@ -107,7 +110,12 @@ export function useConnections(deps: Deps) {
     (id: string) => {
       const endpoint = endpointOf(id);
       if (!endpoint) return;
-      if (!endpoint.url.trim()) {
+      if (endpoint.protocol === "fix") {
+        if (!endpoint.fixGatewayUrl.trim() || !endpoint.fixHost.trim() || !endpoint.fixPort.trim()) {
+          err(id, "Set the gateway URL, acceptor host and port first.");
+          return;
+        }
+      } else if (!endpoint.url.trim()) {
         err(id, "Enter an endpoint URL first.");
         return;
       }
@@ -147,6 +155,25 @@ export function useConnections(deps: Deps) {
         const payload = render(endpoint.wsPayload);
         const byteCount = (clientsRef.current.get(id) as WSClient).send(payload);
         addMsg(id, { dir: "out", raw: payload, size: byteCount });
+      } catch (error) {
+        err(id, (error as Error).message);
+      }
+    },
+    [addMsg, endpointOf, err, ready],
+  );
+
+  const fixSend = useCallback(
+    (id: string) => {
+      const endpoint = endpointOf(id);
+      if (!endpoint) return;
+      if (!ready(id)) {
+        err(id, "Not logged on.");
+        return;
+      }
+      try {
+        const raw = render(endpoint.fixMessage);
+        const frame = (clientsRef.current.get(id) as FIXClient).send(raw);
+        addMsg(id, { dir: "out", raw: prettyFrame(frame), label: "sent", size: byteLen(frame) });
       } catch (error) {
         err(id, (error as Error).message);
       }
@@ -329,6 +356,7 @@ export function useConnections(deps: Deps) {
     disconnect,
     ready,
     wsSend,
+    fixSend,
     stompSubscribe,
     stompSend,
     rsRequest,
