@@ -411,7 +411,7 @@ export function Results({ endpoint, ...props }: Props) {
             npx socketbench-fix-gateway
           </div>
           <div style={{ marginTop: "6px", font: "11px 'IBM Plex Sans'", color: "#5a6270" }}>
-            Listens on <span style={{ fontFamily: MONO, color: "#8a93a4" }}>ws://localhost:9001</span>{" "}
+            Listens on <span style={{ fontFamily: MONO, color: "#8a93a4" }}>ws://localhost:9988</span>{" "}
             — already set as the default Gateway URL.
           </div>
         </div>

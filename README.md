@@ -48,6 +48,6 @@ src/
 
 - **RSocket metadata conventions vary by server.** This client sends `SETUP` with composite-metadata and `application/json` data, single routing-metadata entry, no frame-length prefix (Spring WebSocket style). Other servers may need adjustment.
 - **WebSocket can't set custom HTTP headers** (browser limitation) — auth must go via sub-protocol or query string. STOMP/RSocket auth goes through their own frames.
-- **FIX needs the gateway.** Browsers cannot open raw TCP sockets, so FIX talks to a small local relay: `npx socketbench-fix-gateway` (see `gateway/`). Point the FIX panel's gateway URL at it (default `ws://localhost:9001`). The relay supports plain TCP and TLS and is not FIX-version-aware.
+- **FIX needs the gateway.** Browsers cannot open raw TCP sockets, so FIX talks to a small local relay: `npx socketbench-fix-gateway` (see `gateway/`). Point the FIX panel's gateway URL at it (default `ws://localhost:9988`). The relay supports plain TCP and TLS and is not FIX-version-aware.
 
 The original design bundle is kept in `_design/` for reference.

@@ -276,7 +276,7 @@ export function Composer({ endpoint, splitW, ...props }: Props) {
                   <input
                     value={endpoint.fixGatewayUrl}
                     onChange={props.setField("fixGatewayUrl")}
-                    placeholder="ws://localhost:9001"
+                    placeholder="ws://localhost:9988"
                     spellCheck={false}
                     className="sb-input"
                     style={fieldStyle}

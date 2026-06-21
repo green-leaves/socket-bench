@@ -39,7 +39,7 @@ function dialerFor(useTls) {
   return useTls ? tls.connect : net.connect;
 }
 
-const DEFAULT_PORT = 9001;
+const DEFAULT_PORT = 9988;
 
 const HELP = `socketbench-fix-gateway — thin WebSocket<->TCP/TLS relay for FIX acceptors
 

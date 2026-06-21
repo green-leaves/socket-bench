@@ -121,7 +121,7 @@ export function DEFAULT_ENDPOINT(id: string = newEndpointId()): Endpoint {
     rsRoute: "greeting",
     rsData: '{\n  "name": "QA"\n}',
     rsInitialN: "2147483647",
-    fixGatewayUrl: "ws://localhost:9001",
+    fixGatewayUrl: "ws://localhost:9988",
     fixHost: "",
     fixPort: "",
     fixTls: false,

@@ -10,7 +10,7 @@ describe("FIX endpoint fields", () => {
   it("DEFAULT_ENDPOINT seeds FIX defaults", () => {
     const endpoint = DEFAULT_ENDPOINT("e1");
     expect(endpoint.fixBeginString).toBe("FIX.4.4");
-    expect(endpoint.fixGatewayUrl).toBe("ws://localhost:9001");
+    expect(endpoint.fixGatewayUrl).toBe("ws://localhost:9988");
     expect(endpoint.fixHeartBtInt).toBe("30");
     expect(endpoint.fixResetSeq).toBe(true);
     expect(endpoint.fixTls).toBe(false);

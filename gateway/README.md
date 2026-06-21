@@ -5,18 +5,18 @@ Thin WebSocket↔TCP/TLS relay so the browser-based [SocketBench](https://green-
 ## Run
 
 ```bash
-npx socketbench-fix-gateway              # listens on ws://localhost:9001
+npx socketbench-fix-gateway              # listens on ws://localhost:9988
 npx socketbench-fix-gateway -p 9100      # custom port (also --port 9100)
 PORT=9100 npx socketbench-fix-gateway    # via env var
 npx socketbench-fix-gateway --help       # usage
 ```
 
-Then in SocketBench, pick the **FIX** protocol and set the gateway URL to `ws://localhost:9001` (or your chosen port), plus the acceptor host/port and TLS toggle.
+Then in SocketBench, pick the **FIX** protocol and set the gateway URL to `ws://localhost:9988` (or your chosen port), plus the acceptor host/port and TLS toggle.
 
 ## How it works
 
 The browser connects with the target in the query string:
-`ws://localhost:9001/?host=fix.venue.com&port=9823&tls=1`. The gateway dials that
+`ws://localhost:9988/?host=fix.venue.com&port=9823&tls=1`. The gateway dials that
 host over TCP (or TLS), pumps bytes both ways, and splits the inbound stream into
 whole FIX messages on the `10=NNN` checksum boundary. Its first WS message is a
 JSON control frame (`{"type":"open"}` / `"error"` / `"close"`); every later

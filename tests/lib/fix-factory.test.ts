@@ -8,7 +8,7 @@ describe("createClient FIX branch", () => {
     const endpoint = {
       ...DEFAULT_ENDPOINT("e1"),
       protocol: "fix" as const,
-      fixGatewayUrl: "ws://localhost:9001",
+      fixGatewayUrl: "ws://localhost:9988",
       fixHost: "fix.example.com",
       fixPort: "9823",
       fixTls: true,
@@ -20,7 +20,7 @@ describe("createClient FIX branch", () => {
     });
     expect(client).toBeInstanceOf(FIXClient);
     expect((client as FIXClient).opts.url).toBe(
-      "ws://localhost:9001/?host=fix.example.com&port=9823&tls=1",
+      "ws://localhost:9988/?host=fix.example.com&port=9823&tls=1",
     );
     expect((client as FIXClient).opts.session.senderCompID).toBe("CLIENT");
   });
