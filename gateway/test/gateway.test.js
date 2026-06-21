@@ -3,7 +3,7 @@ const assert = require("node:assert");
 const net = require("node:net");
 const { once } = require("node:events");
 const WebSocket = require("ws");
-const { extractFrames, parseTarget, dialerFor, start } = require("../index.js");
+const { extractFrames, parseTarget, dialerFor, start, parseArgs, DEFAULT_PORT } = require("../index.js");
 
 const SOH = "\x01";
 const frameA = "8=FIX.4.4" + SOH + "35=A" + SOH + "10=123" + SOH;
@@ -29,6 +29,22 @@ test("parseTarget reads host/port/tls from the query", () => {
 test("dialerFor selects net vs tls", () => {
   assert.equal(dialerFor(false), net.connect);
   assert.notEqual(dialerFor(true), net.connect); // tls.connect
+});
+
+test("parseArgs reads the port from -p / --port and defaults", () => {
+  assert.deepEqual(parseArgs([]), { port: DEFAULT_PORT, help: false });
+  assert.deepEqual(parseArgs(["-p", "9100"]), { port: 9100, help: false });
+  assert.deepEqual(parseArgs(["--port", "9100"]), { port: 9100, help: false });
+  assert.deepEqual(parseArgs(["--port=9100"]), { port: 9100, help: false });
+  assert.deepEqual(parseArgs(["9100"]), { port: 9100, help: false }); // bare positional
+});
+
+test("parseArgs handles --help and rejects bad input", () => {
+  assert.equal(parseArgs(["-h"]).help, true);
+  assert.equal(parseArgs(["--help"]).help, true);
+  assert.throws(() => parseArgs(["--bogus"]), /unknown argument/);
+  assert.throws(() => parseArgs(["-p", "0"]), /invalid port/);
+  assert.throws(() => parseArgs(["-p", "99999"]), /invalid port/);
 });
 
 test("relays bytes both ways and frames inbound data", async () => {

@@ -39,6 +39,45 @@ function dialerFor(useTls) {
   return useTls ? tls.connect : net.connect;
 }
 
+const DEFAULT_PORT = 9001;
+
+const HELP = `socketbench-fix-gateway — thin WebSocket<->TCP/TLS relay for FIX acceptors
+
+Usage:
+  npx socketbench-fix-gateway [options]
+
+Options:
+  -p, --port <number>   Port to listen on (default: ${DEFAULT_PORT}, or $PORT)
+  -h, --help            Show this help and exit
+
+The browser connects with:
+  ws://localhost:<port>/?host=<acceptor-host>&port=<acceptor-port>&tls=<0|1>
+and the gateway relays raw bytes to the FIX acceptor over TCP (or TLS).`;
+
+/** Parse CLI args into { port, help }. Throws on unknown args or a bad port. */
+function parseArgs(argv) {
+  let port = Number(process.env.PORT) || DEFAULT_PORT;
+  let help = false;
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === "-h" || arg === "--help") {
+      help = true;
+    } else if (arg === "-p" || arg === "--port") {
+      port = Number(argv[++i]);
+    } else if (arg.startsWith("--port=")) {
+      port = Number(arg.slice("--port=".length));
+    } else if (/^\d+$/.test(arg)) {
+      port = Number(arg); // bare positional port (backwards compatible)
+    } else {
+      throw new Error(`unknown argument: ${arg}`);
+    }
+  }
+  if (!help && (!Number.isInteger(port) || port < 1 || port > 65535)) {
+    throw new Error("invalid port (expected an integer 1-65535)");
+  }
+  return { port, help };
+}
+
 function start(port) {
   const server = new WebSocketServer({ port });
 
@@ -82,10 +121,21 @@ function start(port) {
   return server;
 }
 
-module.exports = { extractFrames, parseTarget, dialerFor, start };
+module.exports = { extractFrames, parseTarget, dialerFor, start, parseArgs, DEFAULT_PORT };
 
 if (require.main === module) {
-  const port = Number(process.env.PORT || process.argv[2] || 9001);
-  start(port);
-  console.log(`socketbench-fix-gateway listening on ws://localhost:${port}`);
+  let parsed;
+  try {
+    parsed = parseArgs(process.argv.slice(2));
+  } catch (error) {
+    console.error(error.message);
+    console.error("Run with --help for usage.");
+    process.exit(1);
+  }
+  if (parsed.help) {
+    console.log(HELP);
+  } else {
+    start(parsed.port);
+    console.log(`socketbench-fix-gateway listening on ws://localhost:${parsed.port}`);
+  }
 }
