@@ -48,8 +48,8 @@ describe("parseMessage / getField", () => {
 });
 
 describe("prettyFrame", () => {
-  it("renders SOH as ' | '", () => {
-    expect(prettyFrame("8=FIX.4.4" + SOH + "35=0" + SOH)).toBe("8=FIX.4.4 | 35=0");
+  it("renders SOH as '|'", () => {
+    expect(prettyFrame("8=FIX.4.4" + SOH + "35=0" + SOH)).toBe("8=FIX.4.4|35=0");
   });
 });
 

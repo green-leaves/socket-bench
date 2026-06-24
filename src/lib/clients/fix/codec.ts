@@ -42,7 +42,7 @@ export function getField(fields: FixField[], tag: number): string | undefined {
 
 /** Human-readable single-line rendering for the message log. */
 export function prettyFrame(frame: string): string {
-  return frame.split(SOH).filter(Boolean).join(" | ");
+  return frame.split(SOH).filter(Boolean).join("|");
 }
 
 /** FIX SendingTime format: YYYYMMDD-HH:MM:SS.sss in UTC. */
